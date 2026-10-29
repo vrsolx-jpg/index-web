@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import pinataImage from './assets/piñata.png';
 import './App.css';
 
 const productos = [
@@ -173,10 +174,7 @@ function App() {
         </div>
 
         <div className="hero-decoration" aria-hidden="true">
-          <img
-            src="/src/assets/piñata.png"
-            alt=""
-          />
+          <img src={pinataImage} alt="" />
         </div>
       </section>
 
