@@ -96,8 +96,9 @@ a {
   width: 125px;
   height: 21px;
   border: 1px solid #c8c8c8;
+  border-radius: 999px;
   background: #fafafa;
-  padding: 4px 7px;
+  padding: 4px 12px;
   font-size: 9px;
   outline-color: var(--olive);
 }
@@ -209,8 +210,6 @@ a {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  mix-blend-mode: multiply;
-  filter: grayscale(1) contrast(0.85);
 }
 
 .catalog-cta {
@@ -308,7 +307,6 @@ a {
   height: 100%;
   display: block;
   object-fit: cover;
-  filter: saturate(0.55);
   transition: transform 0.3s;
 }
 
@@ -383,32 +381,75 @@ a {
   font-size: 13px;
 }
 
-.next-products {
-  position: absolute;
-  right: 8%;
-  top: 48%;
-  width: 57px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border-radius: 30px;
-  background: #eee;
-  color: #555;
-  font-size: 25px;
-  transition: transform 0.2s;
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 26px auto 0;
 }
 
-.next-products:hover {
-  transform: translateX(4px);
+.carousel-arrow {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e9b1c1;
+  border-radius: 50%;
+  background: white;
+  color: var(--rojo-cereza);
+  font-size: 18px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.carousel-arrow:hover:not(:disabled) {
+  background: var(--rojo-cereza);
+  color: white;
+}
+
+.carousel-arrow:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.carousel-pages {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.carousel-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #d7a1b0;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.carousel-dot.is-active {
+  background: var(--rojo-cereza);
+  transform: scale(1.25);
 }
 
 .site-footer {
   display: grid;
-  grid-template-columns: 1fr 1.25fr 1fr;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas: "brand contact";
+  align-items: start;
   gap: 30px;
   padding: 32px 7% 25px;
   background: #fff;
   border-bottom: 1px solid #d4d4d4;
+}
+
+.footer-brand {
+  grid-area: brand;
+}
+
+.footer-contact {
+  grid-area: contact;
 }
 
 .footer-column h3 {
@@ -431,23 +472,6 @@ a {
 
 .footer-brand span {
   display: block;
-}
-
-.payment-methods {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  max-width: 200px;
-}
-
-.payment-methods span {
-  display: inline-block;
-  padding: 6px 10px;
-  border: 1px solid #bdbdbd;
-  border-radius: 5px;
-  color: #666;
-  font-size: 10px;
-  line-height: 1;
 }
 
 .contact-detail {
@@ -684,19 +708,11 @@ a {
     opacity: 1;
   }
 
-  .next-products {
-    position: static;
-    margin: 25px auto 0;
-  }
-
   .site-footer {
     grid-template-columns: 1fr 1fr;
+    grid-template-areas: "brand contact";
     gap: 25px 15px;
     padding: 28px 6%;
-  }
-
-  .footer-column:last-child {
-    grid-column: 1 / -1;
   }
 
   .chat-widget {
@@ -734,10 +750,9 @@ a {
 
   .site-footer {
     grid-template-columns: 1fr;
-  }
-
-  .footer-column:last-child {
-    grid-column: auto;
+    grid-template-areas:
+      "brand"
+      "contact";
   }
 }
 
@@ -774,11 +789,6 @@ a {
 .footer-column span {
   font-size: 13px;
   line-height: 1.8;
-}
-
-.payment-methods span {
-  font-size: 12px;
-  padding: 8px 12px;
 }
 
 .copyright {
@@ -855,12 +865,16 @@ a {
 .hero-banner {
   background: repeating-linear-gradient(
     90deg,
-    #f9e4e9 0,
-    #f9e4e9 14px,
-    #f4d3dc 14px,
-    #f4d3dc 20px,
-    #fcebf0 20px,
-    #fcebf0 38px
+    #f9dbe5 0,
+    #f9dbe5 14px,
+    #f5a5bf 14px,
+    #f5a5bf 20px,
+    #fff0b3 20px,
+    #fff0b3 36px,
+    #b9eceb 36px,
+    #b9eceb 42px,
+    #e8c9f4 42px,
+    #e8c9f4 54px
   );
 }
 
@@ -868,7 +882,7 @@ a {
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.12),
-    rgba(255, 240, 243, 0.2)
+    rgba(255, 255, 255, 0.02)
   );
 }
 
@@ -951,12 +965,6 @@ a {
   color: var(--rojo-cereza);
 }
 
-.next-products {
-  background: var(--blanco);
-  color: var(--rojo-cereza);
-  border: 1px solid #f2d5de;
-}
-
 /* ===== FOOTER BLANCO ===== */
 
 .site-footer,
@@ -970,12 +978,6 @@ a {
 .footer-column span,
 .copyright {
   color: var(--rojo-cereza);
-}
-
-.payment-methods span {
-  color: var(--rojo-cereza);
-  border-color: #e9b1c1;
-  background: var(--blanco);
 }
 
 .site-footer {
@@ -1108,12 +1110,10 @@ a {
 
 
 .best-sellers {
-  background: radial-gradient(
-    ellipse at center,
-    #a3163e 0%,
-    #c34c6c 8%,
-    #edb8c7 25%,
-    #f8dce3 48%,
-    #f8dce3 100%
-  );
+  background-color: #fff0f3;
+  background-image:
+    linear-gradient(rgba(255, 240, 243, 0.76), rgba(255, 240, 243, 0.76)),
+    url('/fondo-fiesta.svg');
+  background-position: center;
+  background-size: cover;
 }

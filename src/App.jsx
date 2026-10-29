@@ -7,43 +7,43 @@ const productos = [
     nombre: 'Combo Básico Niño',
     precio: '$45.000 COP',
     imagen:
-      'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=500&q=80',
+      'https://images.unsplash.com/photo-1562967005-a3c85514d3e9?auto=format&fit=crop&w=500&q=80',
   },
   {
     nombre: 'Kit Arco de Globos Pink',
     precio: '$120.000 COP',
     imagen:
-      'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=500&q=80',
+      'https://images.unsplash.com/photo-1741969494307-55394e3e4071?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
   },
   {
     nombre: 'Kit Completo Repostería',
     precio: '$85.000 COP',
     imagen:
-      'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?auto=format&fit=crop&w=500&q=80',
+      'https://images.unsplash.com/photo-1725524144999-7e27f70fcadd?q=80&w=1169&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
   },
   {
     nombre: 'Piñata Estrella Gigante',
     precio: '$60.000 COP',
     imagen:
-      'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=500&q=80',
+      'https://images.unsplash.com/photo-1778472468507-335011815f7f?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3Dhttps://images.unsplash.com/photo-1609829643742-19485cc841ba?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3Dhttps://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=500&q=80',
   },
   {
-    nombre: 'Piñata de Madera Decorada (50cm)',
+    nombre: 'Piñata de pony (50cm)',
     precio: '$5.000',
     imagen:
-      'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?auto=format&fit=crop&w=500&q=80',
+      'https://images.unsplash.com/photo-1570200194303-1a68bd7e86ee?q=80&w=1175&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3Dhttps://images.unsplash.com/photo-1528185796833-c5827a298584?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3Dhttps://images.unsplash.com/photo-1464349095431-e9a21285b5f3?auto=format&fit=crop&w=500&q=80',
   },
   {
     nombre: 'Set 32 Antifaces Clásicos Surtidos',
     precio: '$12.000',
     imagen:
-      'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?auto=format&fit=crop&w=500&q=80',
+      'https://plus.unsplash.com/premium_photo-1661508688805-21a8c3275801?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3Dhttps://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?auto=format&fit=crop&w=500&q=80',
   },
   {
-    nombre: 'Base Piñata Icopor Estrella (30cm)',
+    nombre: 'Bola de disco mediana',
     precio: '$18.500',
     imagen:
-      'https://images.unsplash.com/photo-1464207687429-7505649dae38?auto=format&fit=crop&w=500&q=80',
+      'https://images.unsplash.com/photo-1560987617-6de57e3d0574?q=80&w=1169&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3Dhttps://images.unsplash.com/photo-1464207687429-7505649dae38?auto=format&fit=crop&w=500&q=80',
   },
 ];
 
@@ -53,9 +53,15 @@ function App() {
   const [carrito, setCarrito] = useState([]);
   const [chatAbierto, setChatAbierto] = useState(true);
   const [mensaje, setMensaje] = useState('');
+  const [paginaCarrusel, setPaginaCarrusel] = useState(0);
 
   const productosFiltrados = productos.filter((producto) =>
     producto.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  );
+  const paginasCarrusel = Math.ceil(productosFiltrados.length / 3);
+  const productosCarrusel = productosFiltrados.slice(
+    paginaCarrusel * 3,
+    paginaCarrusel * 3 + 3
   );
 
   function alternarFavorito(nombre) {
@@ -103,6 +109,7 @@ function App() {
             value={busqueda}
             onChange={(evento) => {
               setBusqueda(evento.target.value);
+              setPaginaCarrusel(0);
               document
                 .getElementById('productos')
                 ?.scrollIntoView({ behavior: 'smooth' });
@@ -167,7 +174,7 @@ function App() {
 
         <div className="hero-decoration" aria-hidden="true">
           <img
-            src="/src/assets/piñata.png" alt=""
+            src="/src/assets/piñata.png"
             alt=""
           />
         </div>
@@ -190,7 +197,7 @@ function App() {
 
           {productosFiltrados.length > 0 ? (
             <div className="products-grid">
-              {productosFiltrados.slice(0, 6).map((producto) => (
+              {productosCarrusel.map((producto) => (
                 <article className="product-card" key={producto.nombre}>
                   <div className="product-image">
                     <img src={producto.imagen} alt={producto.nombre} />
@@ -231,11 +238,44 @@ function App() {
               No encontramos productos con ese nombre.
             </p>
           )}
-        </div>
 
-        <a className="next-products" href="#productos" aria-label="Ver productos">
-          ⟶
-        </a>
+          {paginasCarrusel > 1 && (
+            <nav className="carousel-controls" aria-label="Páginas de productos">
+              <button
+                type="button"
+                className="carousel-arrow"
+                aria-label="Productos anteriores"
+                onClick={() => setPaginaCarrusel((pagina) => pagina - 1)}
+                disabled={paginaCarrusel === 0}
+              >
+                ←
+              </button>
+              <div className="carousel-pages">
+                {Array.from({ length: paginasCarrusel }, (_, pagina) => (
+                  <button
+                    type="button"
+                    key={pagina}
+                    className={`carousel-dot ${
+                      paginaCarrusel === pagina ? 'is-active' : ''
+                    }`}
+                    aria-label={`Ver grupo de productos ${pagina + 1}`}
+                    aria-current={paginaCarrusel === pagina ? 'page' : undefined}
+                    onClick={() => setPaginaCarrusel(pagina)}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                className="carousel-arrow"
+                aria-label="Siguientes productos"
+                onClick={() => setPaginaCarrusel((pagina) => pagina + 1)}
+                disabled={paginaCarrusel === paginasCarrusel - 1}
+              >
+                →
+              </button>
+            </nav>
+          )}
+        </div>
       </section>
 
       {/* PIE DE PÁGINA */}
@@ -252,17 +292,7 @@ function App() {
           <span>Fiesta y repostería.</span>
         </div>
 
-        <div className="footer-column">
-          <h3>PAGOS SEGUROS CON</h3>
-          <div className="payment-methods">
-            <span>PSE</span>
-            <span>Daviplata</span>
-            <span>Nequi</span>
-            <span>Bancolombia</span>
-          </div>
-        </div>
-
-        <div className="footer-column">
+        <div className="footer-column footer-contact">
           <h3>CONTACTO</h3>
           <p className="contact-detail">+57 300 123 4567</p>
           <a href="mailto:hola@fiestacolombia.com">
