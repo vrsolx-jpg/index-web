@@ -2,11 +2,26 @@
 html,
 body,
 #root {
-  min-height: 100%;
+  height: 100%;
   margin: 0;
   width: 100%;
+  overflow: hidden;
 }
 
 #root {
-  min-height: 100vh;
+  min-height: 100svh;
+}
+
+html.catalog-open,
+body.catalog-open {
+  height: auto;
+  min-height: 100%;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+body.catalog-open #root {
+  height: auto;
+  min-height: 100svh;
+  overflow: visible;
 }
