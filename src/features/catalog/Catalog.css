@@ -594,6 +594,36 @@
   cursor: default;
 }
 
+.catalog-quote-action {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.catalog-quote-action button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 180px;
+  min-height: 46px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--catalog-theme, #45c9ca);
+  color: var(--catalog-theme-ink, #254f55);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.catalog-quote-action button:hover {
+  transform: translateY(-2px);
+  background: var(--catalog-theme-accent, #ee78ad);
+  color: #fff;
+}
+
 .catalog-footer {
   border-top: 1px solid #f3dbe2;
   background: #fff;

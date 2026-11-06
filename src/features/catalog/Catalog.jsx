@@ -145,7 +145,7 @@ function ProductCard({ category, product, favorite, onFavorite, onAdd }) {
   );
 }
 
-function Catalog({ catalogRef, catalogFooterRef, onPending, onShare }) {
+function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) {
   const [selectedCategory, setSelectedCategory] = useState(categoriasCatalogo[0].id);
   const [showAll, setShowAll] = useState(false);
   const [favorites, setFavorites] = useState([]);
@@ -496,6 +496,13 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare }) {
                       →
                     </button>
                   </nav>
+                )}
+                {selectedCategory === 'eventos' && (
+                  <div className="catalog-quote-action">
+                    <button type="button" onClick={onQuote}>
+                      Cotizar <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

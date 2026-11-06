@@ -5,6 +5,7 @@ import bateImage from '../../assets/bate.png';
 import gorrosImage from '../../assets/gorros.png';
 import lentesImage from '../../assets/lentes.png';
 import pinataImage from '../../assets/piañata.png';
+import AboutQuotesPage from '../about/AboutQuotesPage.jsx';
 import Catalog from '../catalog/Catalog.jsx';
 import ProfileModal from '../profile/ProfileModal.jsx';
 import './HomePage.css';
@@ -25,6 +26,9 @@ const decoracionesBienvenida = [
 ];
 
 function HomePage() {
+  const [paginaActual, setPaginaActual] = useState(() => (
+    window.location.hash === '#cotizaciones' ? 'cotizaciones' : 'inicio'
+  ));
   const [chatAbierto, setChatAbierto] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const [authMode, setAuthMode] = useState(null);
@@ -37,6 +41,19 @@ function HomePage() {
     saliendo: null,
     colores: objetosFiesta[0],
   });
+
+  useEffect(() => {
+    function sincronizarPagina() {
+      setPaginaActual(window.location.hash === '#cotizaciones' ? 'cotizaciones' : 'inicio');
+    }
+
+    window.addEventListener('popstate', sincronizarPagina);
+    window.addEventListener('hashchange', sincronizarPagina);
+    return () => {
+      window.removeEventListener('popstate', sincronizarPagina);
+      window.removeEventListener('hashchange', sincronizarPagina);
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('catalog-open', catalogoAbierto);
@@ -117,6 +134,12 @@ function HomePage() {
     setShareMessage(`${seccion} estará disponible próximamente.`);
   }
 
+  function irACotizaciones() {
+    window.history.pushState({ pagina: 'cotizaciones' }, '', '#cotizaciones');
+    setPaginaActual('cotizaciones');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
   async function compartirPagina() {
     const url = window.location.href;
 
@@ -150,6 +173,8 @@ function HomePage() {
     );
     setMensaje('');
   }
+
+  if (paginaActual === 'cotizaciones') return <AboutQuotesPage />;
 
   return (
     <main>
@@ -319,6 +344,7 @@ function HomePage() {
           catalogFooterRef={catalogoFooterRef}
           onPending={mostrarPendiente}
           onShare={compartirPagina}
+          onQuote={irACotizaciones}
         />
       )}
 
