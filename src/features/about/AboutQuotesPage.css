@@ -1,0 +1,38 @@
+.about-quotes-page {
+  display: grid;
+  gap: 32px;
+  width: min(100% - 40px, 1080px);
+  margin: 0 auto;
+  padding: clamp(40px, 8vw, 88px) 0;
+  color: #6b2580;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.about-quotes-page section {
+  padding: clamp(24px, 5vw, 48px);
+  border: 1px solid #eadbed;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(53, 0, 71, 0.06);
+}
+
+.about-quotes-page h1,
+.about-quotes-page h2 {
+  margin: 0;
+  color: #6b2580;
+  font-family: 'Baloo 2', 'DM Sans', sans-serif;
+}
+
+.about-quotes-page h1 {
+  font-size: clamp(32px, 5vw, 48px);
+}
+
+.about-quotes-page h2 {
+  font-size: clamp(26px, 4vw, 36px);
+}
+
+.about-quotes-page p {
+  margin: 12px 0 0;
+  color: #765d7e;
+  line-height: 1.6;
+}
