@@ -297,9 +297,8 @@ function ProductModal({ product, onClose, onAdd }) {
   );
 }
 
-function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote, onOpenChat, onExpand, onCollapse }) {
+function Catalog({ catalogRef, catalogFooterRef, isExpanded, onPending, onShare, onQuote, onOpenChat, onExpand, onCollapse }) {
   const [selectedCategory, setSelectedCategory] = useState(categoriasCatalogo[0].id);
-  const [showAll, setShowAll] = useState(false);
   const [favorites, setFavorites] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [slideStart, setSlideStart] = useState(0);
@@ -412,12 +411,12 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote, on
   return (
     <>
       <section
-        className={`catalog-section catalog-category-${selectedCategory}${showAll ? ' is-expanded' : ''}`}
+        className={`catalog-section catalog-category-${selectedCategory}${isExpanded ? ' is-expanded' : ''}`}
         id="productos"
         aria-labelledby="catalog-title"
         ref={catalogRef}
       >
-        {showAll && (
+        {isExpanded && (
           <div className="catalog-floating-decorations" aria-hidden="true">
             {decoracionesFondo.map((decoration, index) => (
               <span
@@ -435,7 +434,7 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote, on
             ))}
           </div>
         )}
-        {!showAll ? (
+        {!isExpanded ? (
           <div className="catalog-showcase">
             <aside className="catalog-category-panel">
               <div className="catalog-heading">
@@ -510,7 +509,6 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote, on
                   className="catalog-view-all"
                   onClick={() => {
                     selectCategory('todos');
-                    setShowAll(true);
                     onExpand();
                   }}
                 >
@@ -525,7 +523,6 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote, on
               type="button"
               className="catalog-back-button"
               onClick={() => {
-                setShowAll(false);
                 onCollapse();
               }}
             >

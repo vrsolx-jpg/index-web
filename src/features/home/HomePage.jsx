@@ -165,7 +165,11 @@ function HomePage() {
       >
         <div className="welcome-frame">
           <header className="site-header welcome-site-header">
-            <a href="#inicio" className="brand">
+            <a
+              href="#inicio"
+              className="brand"
+              onClick={() => setCatalogoCompleto(false)}
+            >
               <img src={fiestaColombiaLogo} alt="" />
               <span>FIESTA COLOMBIA</span>
             </a>
@@ -327,6 +331,7 @@ function HomePage() {
       <Catalog
         catalogRef={catalogoRef}
         catalogFooterRef={catalogoFooterRef}
+        isExpanded={catalogoCompleto}
         onPending={mostrarPendiente}
         onShare={compartirPagina}
         onQuote={irACotizaciones}
