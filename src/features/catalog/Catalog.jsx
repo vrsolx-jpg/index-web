@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { categoriasCatalogo, productosCatalogo } from './catalogProducts.js';
+import {
+  categoriasCatalogo,
+  productosCatalogo,
+  productosCatalogoCompleto,
+} from './catalogProducts.js';
+import logoFiesta from '../../assets/fiesta-colombia-logo.png';
 import './Catalog.css';
 
 const iconosCategoria = {
@@ -49,6 +54,17 @@ function CategoryIcon({ category }) {
     );
   }
 
+  if (category === 'todos') {
+    return (
+      <svg {...props}>
+        <rect x="4" y="4" width="9" height="9" rx="1.5" />
+        <rect x="19" y="4" width="9" height="9" rx="1.5" />
+        <rect x="4" y="19" width="9" height="9" rx="1.5" />
+        <rect x="19" y="19" width="9" height="9" rx="1.5" />
+      </svg>
+    );
+  }
+
   return (
     <svg {...props}>
       <ellipse cx="16" cy="12" rx="11" ry="5.5" />
@@ -84,12 +100,22 @@ const decoracionesFondo = [
 ];
 
 function getProductColors(product) {
-  if (!product.colores?.length) return ['Surtido'];
-  return [...new Set(product.colores.map((color) => nombresColor[color.toLowerCase()] ?? 'Surtido'))];
+  if (!product.colores?.length) return [];
+  return [...new Set(
+    product.colores
+      .map((color) => nombresColor[color.toLowerCase()])
+      .filter(Boolean)
+  )];
 }
 
 function getPriceValue(product) {
   return product.precioCOP;
+}
+
+function getSalePrice(product) {
+  return product.descuentoPorcentaje
+    ? Math.round(product.precioCOP * (1 - product.descuentoPorcentaje / 100))
+    : product.precioCOP;
 }
 
 function formatPriceCOP(price) {
@@ -100,93 +126,233 @@ function formatPriceCOP(price) {
   }).format(price)} COP`;
 }
 
-function ProductCard({ category, product, favorite, onFavorite, onAdd }) {
+function CartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" />
+      <circle cx="10" cy="20" r="1" />
+      <circle cx="18" cy="20" r="1" />
+    </svg>
+  );
+}
+
+function ProductCard({ product, favorite, onFavorite, onOpen, onAdd }) {
+  const outOfStock = product.stock <= 0;
+
   return (
     <article className="catalog-product-card">
-      <div className="catalog-product-image">
-        {product.image ? (
-          <img src={product.image} alt={product.nombre} loading="lazy" />
-        ) : (
-          <div className={`catalog-image-placeholder catalog-image-placeholder--${category}`} aria-label={`Imagen pendiente: ${product.nombre}`}>
-            <span aria-hidden="true">{iconosCategoria[category]}</span>
-            <small>Imagen por agregar</small>
-          </div>
-        )}
-        <button
-          type="button"
-          className={`catalog-product-favorite${favorite ? ' is-favorite' : ''}`}
-          aria-label={favorite ? `Quitar ${product.nombre} de favoritos` : `Agregar ${product.nombre} a favoritos`}
-          aria-pressed={favorite}
-          onClick={() => onFavorite(product.id)}
-        >
-          {favorite ? '♥' : '♡'}
-        </button>
-      </div>
-      <div className="catalog-product-info">
-        <p className="catalog-product-category">
-          {categoriasCatalogo.find((item) => item.id === category)?.nombre}
-        </p>
-        {product.colores?.length > 0 && (
-          <div className="catalog-product-colors" aria-label="Colores disponibles">
-            {product.colores.map((color) => (
-              <span key={color} style={{ '--product-swatch': color }} />
-            ))}
-          </div>
-        )}
-        <h3>{product.nombre}</h3>
-        <p className="catalog-product-price">
-          {product.precioDesde ? 'Desde ' : ''}{formatPriceCOP(product.precioCOP)}
-        </p>
-        <button type="button" className="catalog-product-add" onClick={onAdd}>
-          Agregar al carrito
-        </button>
-      </div>
+      <button type="button" className="catalog-product-open" onClick={onOpen}>
+        <span className="catalog-product-image">
+          {product.image ? (
+            <img src={product.image} alt="" loading="lazy" />
+          ) : (
+            <span className={`catalog-image-placeholder catalog-image-placeholder--${product.categoria}`}>
+              <span aria-hidden="true">{iconosCategoria[product.categoria]}</span>
+              <small>Imagen por agregar</small>
+            </span>
+          )}
+          {product.descuentoPorcentaje && (
+            <span className="catalog-discount-badge">-{product.descuentoPorcentaje}%</span>
+          )}
+          {outOfStock && <span className="catalog-stock-badge">Agotado</span>}
+        </span>
+        <span className="catalog-product-info">
+          <span className="catalog-product-category">
+            {categoriasCatalogo.find((item) => item.id === product.categoria)?.nombre}
+          </span>
+          {product.colores?.length > 0 && (
+            <span className="catalog-product-colors" aria-label="Colores disponibles">
+              {product.colores.map((color) => (
+                <span key={color} style={{ '--product-swatch': color }} />
+              ))}
+            </span>
+          )}
+          <span className="catalog-product-name">{product.nombre}</span>
+          <span className={`catalog-product-price${product.descuentoPorcentaje ? ' has-discount' : ''}`}>
+            {product.descuentoPorcentaje && (
+              <del>{formatPriceCOP(product.precioCOP)}</del>
+            )}
+            {product.precioDesde ? 'Desde ' : ''}{formatPriceCOP(getSalePrice(product))}
+          </span>
+        </span>
+      </button>
+      <button
+        type="button"
+        className={`catalog-product-favorite${favorite ? ' is-favorite' : ''}`}
+        aria-label={favorite ? `Quitar ${product.nombre} de favoritos` : `Agregar ${product.nombre} a favoritos`}
+        aria-pressed={favorite}
+        onClick={() => onFavorite(product.id)}
+      >
+        {favorite ? '♥' : '♡'}
+      </button>
+      <button
+        type="button"
+        className="catalog-product-add"
+        disabled={outOfStock}
+        onClick={onAdd}
+      >
+        <CartIcon />
+        {outOfStock ? 'Agotado' : 'Agregar al carrito'}
+      </button>
     </article>
   );
 }
 
-function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) {
+function ProductModal({ product, onClose, onAdd }) {
+  const [quantity, setQuantity] = useState(1);
+  const outOfStock = product.stock <= 0;
+
+  useEffect(() => {
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') onClose();
+    }
+
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
+
+  return (
+    <div
+      className="catalog-product-modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="catalog-product-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="product-modal-title"
+      >
+        <button type="button" className="catalog-product-modal-close" onClick={onClose} aria-label="Cerrar detalle">
+          ×
+        </button>
+        <div className="catalog-product-modal-image">
+          {product.image ? (
+            <img src={product.image} alt={product.nombre} />
+          ) : (
+            <div className={`catalog-image-placeholder catalog-image-placeholder--${product.categoria}`}>
+              <span aria-hidden="true">{iconosCategoria[product.categoria]}</span>
+              <small>Imagen por agregar</small>
+            </div>
+          )}
+        </div>
+        <div className="catalog-product-modal-details">
+          <p className="catalog-product-category">
+            {categoriasCatalogo.find((item) => item.id === product.categoria)?.nombre}
+          </p>
+          <h2 id="product-modal-title">{product.nombre}</h2>
+          <p className="catalog-product-modal-brand">Marca: <strong>{product.marca}</strong></p>
+          <p className={`catalog-product-modal-stock${outOfStock ? ' is-out-of-stock' : ''}`}>
+            {product.stock} {product.stock === 1 ? 'unidad disponible' : 'unidades disponibles'}
+            {outOfStock && ' · Agotado'}
+          </p>
+          <p className={`catalog-product-modal-price${product.descuentoPorcentaje ? ' has-discount' : ''}`}>
+            {product.descuentoPorcentaje && (
+              <del>{formatPriceCOP(product.precioCOP)}</del>
+            )}
+            {formatPriceCOP(getSalePrice(product))}
+          </p>
+          {product.colores?.length > 0 && (
+            <div className="catalog-product-modal-colors">
+              <span>Colores disponibles:</span>
+              {product.colores.map((color) => (
+                <span key={color} style={{ '--product-swatch': color }} aria-label={nombresColor[color.toLowerCase()] ?? color} />
+              ))}
+            </div>
+          )}
+          <div className="catalog-product-modal-actions">
+            <div className="catalog-quantity-picker" aria-label="Cantidad">
+              <button
+                type="button"
+                aria-label="Disminuir cantidad"
+                disabled={quantity <= 1 || outOfStock}
+                onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+              >
+                −
+              </button>
+              <span aria-live="polite">{quantity}</span>
+              <button
+                type="button"
+                aria-label="Aumentar cantidad"
+                disabled={outOfStock || quantity >= product.stock}
+                onClick={() => setQuantity((current) => Math.min(product.stock, current + 1))}
+              >
+                +
+              </button>
+            </div>
+            <button
+              type="button"
+              className="catalog-product-add"
+              disabled={outOfStock}
+              onClick={() => onAdd(quantity)}
+            >
+              <CartIcon />
+              {outOfStock ? 'Agotado' : 'Agregar al carrito'}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote, onOpenChat, onExpand, onCollapse }) {
   const [selectedCategory, setSelectedCategory] = useState(categoriasCatalogo[0].id);
   const [showAll, setShowAll] = useState(false);
   const [favorites, setFavorites] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [slideStart, setSlideStart] = useState(0);
   const [slidesPerView, setSlidesPerView] = useState(() => (
     window.matchMedia('(max-width: 760px)').matches ? 1
       : window.matchMedia('(max-width: 1050px)').matches ? 2 : 4
   ));
   const [sortOrder, setSortOrder] = useState('relevant');
-  const [availableOnly, setAvailableOnly] = useState(false);
   const [selectedColors, setSelectedColors] = useState([]);
   const itemsPerPage = 12;
   const [currentPage, setCurrentPage] = useState(1);
-  const allCategoryProducts = productosCatalogo[selectedCategory];
+  const [minPriceInput, setMinPriceInput] = useState('');
+  const [maxPriceInput, setMaxPriceInput] = useState('');
+  const allCategoryProducts = selectedCategory === 'todos'
+    ? productosCatalogoCompleto
+    : productosCatalogo[selectedCategory];
   const categoryMaximumPrice = Math.max(...allCategoryProducts.map(getPriceValue));
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(categoryMaximumPrice);
+  const minPrice = minPriceInput === '' ? 0 : Number(minPriceInput);
+  const maxPrice = maxPriceInput === '' ? categoryMaximumPrice : Number(maxPriceInput);
   const maxSlide = Math.max(0, allCategoryProducts.length - slidesPerView);
   const visibleProducts = allCategoryProducts.slice(slideStart, slideStart + slidesPerView);
 
   const availableColors = useMemo(
-    () => [...new Set(allCategoryProducts.flatMap(getProductColors))],
-    [allCategoryProducts]
+    () => [...new Set(productosCatalogoCompleto.flatMap(getProductColors))]
+      .filter((color) => color !== 'Surtido'),
+    []
   );
 
   const filteredProducts = useMemo(() => {
     const filtered = allCategoryProducts.filter((product) => {
-      const price = getPriceValue(product);
-      const matchesAvailability = !availableOnly || product.disponible !== false;
+      const price = getSalePrice(product);
       const matchesPrice = price >= minPrice && price <= maxPrice;
       const matchesColor = selectedColors.length === 0
         || getProductColors(product).some((color) => selectedColors.includes(color));
-      return matchesAvailability && matchesPrice && matchesColor;
+      return matchesPrice && matchesColor;
     });
 
+    if (sortOrder === 'relevant') {
+      filtered.sort((a, b) => (
+        Number(Boolean(b.descuentoPorcentaje)) - Number(Boolean(a.descuentoPorcentaje))
+        || getSalePrice(a) - getSalePrice(b)
+      ));
+    }
     if (sortOrder === 'name-asc') filtered.sort((a, b) => a.nombre.localeCompare(b.nombre));
     if (sortOrder === 'name-desc') filtered.sort((a, b) => b.nombre.localeCompare(a.nombre));
-    if (sortOrder === 'price-asc') filtered.sort((a, b) => getPriceValue(a) - getPriceValue(b));
-    if (sortOrder === 'price-desc') filtered.sort((a, b) => getPriceValue(b) - getPriceValue(a));
+    if (sortOrder === 'price-asc') filtered.sort((a, b) => getSalePrice(a) - getSalePrice(b));
+    if (sortOrder === 'price-desc') filtered.sort((a, b) => getSalePrice(b) - getSalePrice(a));
     return filtered;
-  }, [allCategoryProducts, availableOnly, maxPrice, minPrice, selectedColors, sortOrder]);
+  }, [allCategoryProducts, maxPrice, minPrice, selectedColors, sortOrder]);
+  const hasColorMatches = selectedColors.length === 0
+    || allCategoryProducts.some((product) => (
+      getProductColors(product).some((color) => selectedColors.includes(color))
+    ));
 
   const pageCount = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   const paginatedProducts = filteredProducts.slice(
@@ -215,9 +381,8 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
     setSlideStart(0);
     setCurrentPage(1);
     setSelectedColors([]);
-    setAvailableOnly(false);
-    setMinPrice(0);
-    setMaxPrice(Math.max(...productosCatalogo[categoryId].map(getPriceValue)));
+    setMinPriceInput('');
+    setMaxPriceInput('');
   }
 
   function toggleFavorite(productId) {
@@ -229,19 +394,17 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
   }
 
   function toggleColor(color) {
-    setSelectedColors((current) => (
-      current.includes(color)
-        ? current.filter((item) => item !== color)
-        : [...current, color]
-    ));
+    setSelectedColors((current) => {
+      if (current.includes(color)) return current.filter((item) => item !== color);
+      return [...current, color];
+    });
     setCurrentPage(1);
   }
 
   function resetFilters() {
-    setAvailableOnly(false);
     setSelectedColors([]);
-    setMinPrice(0);
-    setMaxPrice(categoryMaximumPrice);
+    setMinPriceInput('');
+    setMaxPriceInput('');
     setSortOrder('relevant');
     setCurrentPage(1);
   }
@@ -280,7 +443,7 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                 <h2 id="catalog-title">Categorías destacadas</h2>
               </div>
               <nav className="catalog-categories" aria-label="Categorías de productos">
-                {categoriasCatalogo.map((category) => (
+                {[{ id: 'todos', nombre: 'Todas las categorías' }, ...categoriasCatalogo].map((category) => (
                   <button
                     type="button"
                     key={category.id}
@@ -292,24 +455,32 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                       <CategoryIcon category={category.id} />
                     </span>
                     <span>{category.nombre}</span>
-                    <span className="catalog-category-count">{productosCatalogo[category.id].length}</span>
+                    <span className="catalog-category-count">
+                      {category.id === 'todos'
+                        ? productosCatalogoCompleto.length
+                        : productosCatalogo[category.id].length}
+                    </span>
                   </button>
                 ))}
               </nav>
             </aside>
             <div className="catalog-preview">
               <div className="catalog-preview-heading">
-                <h3>{categoriasCatalogo.find((category) => category.id === selectedCategory)?.nombre}</h3>
+                <h3>
+                  {selectedCategory === 'todos'
+                    ? 'Todos los productos'
+                    : categoriasCatalogo.find((category) => category.id === selectedCategory)?.nombre}
+                </h3>
                 <span>{allCategoryProducts.length} productos</span>
               </div>
               <div className="catalog-preview-cards" aria-live="polite">
                 {visibleProducts.map((product) => (
                   <ProductCard
                     key={product.id}
-                    category={selectedCategory}
                     product={product}
                     favorite={favorites.includes(product.id)}
                     onFavorite={toggleFavorite}
+                    onOpen={() => setSelectedProduct(product)}
                     onAdd={() => onPending('Agregar al carrito')}
                   />
                 ))}
@@ -334,7 +505,15 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                     →
                   </button>
                 </div>
-                <button type="button" className="catalog-view-all" onClick={() => setShowAll(true)}>
+                <button
+                  type="button"
+                  className="catalog-view-all"
+                  onClick={() => {
+                    selectCategory('todos');
+                    setShowAll(true);
+                    onExpand();
+                  }}
+                >
                   Ver todo <span aria-hidden="true">→</span>
                 </button>
               </div>
@@ -342,7 +521,14 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
           </div>
         ) : (
           <div className="catalog-all-content">
-            <button type="button" className="catalog-back-button" onClick={() => setShowAll(false)}>
+            <button
+              type="button"
+              className="catalog-back-button"
+              onClick={() => {
+                setShowAll(false);
+                onCollapse();
+              }}
+            >
               <span aria-hidden="true">←</span> Volver a categorías
             </button>
             <div className="catalog-all-layout">
@@ -353,7 +539,7 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                 </div>
                 <fieldset className="catalog-filter-group">
                   <legend>Categorías</legend>
-                  {categoriasCatalogo.map((category) => (
+                  {[{ id: 'todos', nombre: 'Todas las categorías' }, ...categoriasCatalogo].map((category) => (
                     <label className="catalog-filter-option" key={category.id}>
                       <input
                         type="radio"
@@ -362,67 +548,50 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                         onChange={() => selectCategory(category.id)}
                       />
                       <span>{category.nombre}</span>
-                      <small>{productosCatalogo[category.id].length}</small>
+                      <small>
+                        {category.id === 'todos'
+                          ? productosCatalogoCompleto.length
+                          : productosCatalogo[category.id].length}
+                      </small>
                     </label>
                   ))}
                 </fieldset>
                 <fieldset className="catalog-filter-group">
-                  <legend>Disponibilidad</legend>
-                  <label className="catalog-filter-option">
-                    <input
-                      type="checkbox"
-                      checked={availableOnly}
-                      onChange={(event) => {
-                        setAvailableOnly(event.target.checked);
-                        setCurrentPage(1);
-                      }}
-                    />
-                    <span>En existencia</span>
-                  </label>
-                </fieldset>
-                <fieldset className="catalog-filter-group">
-                  <legend>Precio</legend>
-                  <div className="catalog-price-inputs">
+                <legend>Precio</legend>
+                <div className="catalog-price-inputs">
                     <label>
                       <span>Mínimo (COP)</span>
                       <input
-                        type="number"
-                        min="0"
-                        max={maxPrice}
-                        value={minPrice}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="0"
+                        value={minPriceInput}
                         onChange={(event) => {
-                          setMinPrice(Math.min(maxPrice, Math.max(0, Number(event.target.value))));
-                          setCurrentPage(1);
+                          if (/^\d*$/.test(event.target.value)) {
+                            setMinPriceInput(event.target.value);
+                            setCurrentPage(1);
+                          }
                         }}
                       />
                     </label>
                     <label>
                       <span>Máximo (COP)</span>
                       <input
-                        type="number"
-                        min={minPrice}
-                        max={categoryMaximumPrice}
-                        value={maxPrice}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder={String(categoryMaximumPrice)}
+                        value={maxPriceInput}
                         onChange={(event) => {
-                          setMaxPrice(Math.max(minPrice, Number(event.target.value)));
-                          setCurrentPage(1);
+                          if (/^\d*$/.test(event.target.value)) {
+                            setMaxPriceInput(event.target.value);
+                            setCurrentPage(1);
+                          }
                         }}
                       />
                     </label>
                   </div>
-                  <input
-                    className="catalog-price-range"
-                    type="range"
-                    min="0"
-                    max={categoryMaximumPrice || 1}
-                    value={maxPrice}
-                    aria-label="Precio máximo"
-                    onChange={(event) => {
-                      setMaxPrice(Number(event.target.value));
-                      setCurrentPage(1);
-                    }}
-                  />
-                  <p className="catalog-filter-hint">Precio máximo: {formatPriceCOP(categoryMaximumPrice)}</p>
                 </fieldset>
                 {availableColors.length > 0 && (
                   <fieldset className="catalog-filter-group">
@@ -460,15 +629,20 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                     </select>
                   </label>
                 </header>
+                {selectedColors.length > 0 && !hasColorMatches && (
+                  <p className="catalog-color-unavailable" role="status">
+                    Los colores seleccionados no están disponibles en esta categoría por el momento.
+                  </p>
+                )}
                 {paginatedProducts.length > 0 ? (
                   <div className="catalog-all-grid">
                     {paginatedProducts.map((product) => (
                       <ProductCard
                         key={product.id}
-                        category={selectedCategory}
                         product={product}
                         favorite={favorites.includes(product.id)}
                         onFavorite={toggleFavorite}
+                        onOpen={() => setSelectedProduct(product)}
                         onAdd={() => onPending('Agregar al carrito')}
                       />
                     ))}
@@ -509,17 +683,50 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
           </div>
         )}
       </section>
+      {selectedProduct && (
+        <ProductModal
+          key={selectedProduct.id}
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAdd={() => {
+            onPending('Agregar al carrito');
+            setSelectedProduct(null);
+          }}
+        />
+      )}
       <footer className="catalog-footer" ref={catalogFooterRef}>
         <div className="catalog-footer-main">
           <section className="catalog-footer-brand" aria-labelledby="footer-brand-title">
-            <h2 id="footer-brand-title">Fiesta Colombia</h2>
-            <p>
-              Tu aliado estratégico para los momentos más especiales de tu vida.
-              Fiesta y repostería.
-            </p>
+            <div className="catalog-footer-brand-lockup">
+              <img src={logoFiesta} alt="Logo de Fiesta Colombia: confeti dentro de un círculo" />
+              <h2 id="footer-brand-title">
+                <span>Fiesta</span>
+                <span>Colombia</span>
+              </h2>
+            </div>
           </section>
           <section className="catalog-footer-contact" aria-labelledby="footer-contact-title">
             <h2 id="footer-contact-title">Contacto</h2>
+            <p className="catalog-footer-contact-item">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
+                <circle cx="12" cy="10" r="2.5" />
+              </svg>
+              Neiva, Huila, Colombia
+            </p>
+            <a className="catalog-footer-contact-item" href="tel:+573000000000">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 3h4l2 5-3 2a16 16 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 20 4 14 3 5a2 2 0 0 1 2-2Z" />
+              </svg>
+              +57 300 000 0000
+            </a>
+            <a className="catalog-footer-contact-item" href="mailto:contacto@fiestacolombia.example">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m4 7 8 6 8-6" />
+              </svg>
+              contacto@fiestacolombia.example
+            </a>
             <div className="catalog-footer-links">
               <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -529,13 +736,18 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                 </svg>
               </a>
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
+                href="https://www.facebook.com/"
                 target="_blank"
                 rel="noreferrer"
-                aria-label="Compartir en Facebook"
+                aria-label="Facebook"
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M14 21v-8h3l.5-4H14V7c0-1.2.4-2 2-2h1.7V1.4C17 1.2 15.8 1 14.5 1 11.2 1 9 3 9 6.7V9H6v4h3v8z" />
+                </svg>
+              </a>
+              <a href="https://www.tiktok.com/" target="_blank" rel="noreferrer" aria-label="TikTok">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14 3v11.2a4.2 4.2 0 1 1-3.2-4.1M14 3c.6 3.2 2.7 5.2 6 5.5" />
                 </svg>
               </a>
               <button type="button" onClick={onShare} aria-label="Compartir página">
@@ -547,13 +759,21 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                 </svg>
               </button>
             </div>
-            <a className="catalog-footer-email" href="mailto:hola@fiestacolombia.com">
+          </section>
+          <section className="catalog-footer-hours" aria-labelledby="footer-hours-title">
+            <h2 id="footer-hours-title">Horario</h2>
+            <p>Servicio completamente online</p>
+            <strong>24 horas · todos los días</strong>
+          </section>
+          <section className="catalog-footer-chat" aria-labelledby="footer-chat-title">
+            <h2 id="footer-chat-title">¿Necesitas ayuda?</h2>
+            <button type="button" onClick={onOpenChat}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <path d="m4 7 8 6 8-6" />
+                <path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.6 8.6 0 0 1-3.5-.8L4 20l1.2-3.4A7.2 7.2 0 0 1 4 12c0-4.1 3.6-7.5 8-7.5s8 2.9 8 7Z" />
+                <path d="M8 12h.01M12 12h.01M16 12h.01" />
               </svg>
-              hola@fiestacolombia.com
-            </a>
+              <span>Abrir chatbot</span>
+            </button>
           </section>
         </div>
         <div className="catalog-footer-copyright">© 2026 Fiesta Colombia. Todos los derechos reservados.</div>

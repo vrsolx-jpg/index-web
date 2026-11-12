@@ -5,7 +5,7 @@ export const categoriasCatalogo = [
   { id: 'desechables', nombre: 'Desechables', icono: '◉' },
 ];
 
-export const productosCatalogo = {
+const productosCatalogoBase = {
   decoraciones: [
     { id: 'letrero-felicidades', nombre: 'Letrero de globos Felicidades', precioCOP: 7800, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260716_200943_1c4dbfd8-5cd1-4b85-b7ea-41a55a46b24a.png?v=1784232657&width=1200', colores: ['#d6ae34', '#c4c6c8'] },
     { id: 'letrero-cumple-16', nombre: 'Letrero de globos Feliz Cumpleaños 16"', precioCOP: 7800, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260714_200807_edb1736a-bb9c-43fd-9d54-7ea435d1bfbc.png?v=1784228412&width=1200', colores: ['#d6ae34', '#c4c6c8', '#e7a5b5'] },
@@ -23,27 +23,27 @@ export const productosCatalogo = {
     { id: 'globos-macarron', nombre: 'Colores surtidos Macarrón — 50 globos látex', precioCOP: 13700, image: 'https://mundofiesta.mx/cdn/shop/files/SM.Amarillo.png?v=1783362656&width=1200', colores: ['#e9df7b', '#e6a4d5', '#64750a'] },
     { id: 'globos-lisos', nombre: 'Colores surtidos — 50 globos látex colores lisos', precioCOP: 13700, image: 'https://mundofiesta.mx/cdn/shop/files/S.RosaObscuro.png?v=1783362555&width=1200', colores: ['#e9df7b', '#e6a4d5', '#64750a'] },
     { id: 'globos-verde-oliva', nombre: 'Verde Olivo — 50 globos látex colores lisos', precioCOP: 13700, image: 'https://mundofiesta.mx/cdn/shop/files/verde-olivo-bolsa.jpg?v=1783357016&width=1200', colores: ['#64750a'] },
-    { id: 'confeti-multicolor', nombre: 'Confeti multicolor 100 g', precioCOP: 4400, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_124359_d8a4f29e-0142-49fb-87c9-897bd8a5dc02.png?v=1785761118&width=1200' },
-    { id: 'serpentinas', nombre: 'Serpentinas 20 rollitos', precioCOP: 5000, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_124356_beee1a68-f823-4a6d-bb51-96a29add06ec.png?v=1785761112&width=1200' },
+    { id: 'confeti-multicolor', nombre: 'Confeti multicolor 100 g', precioCOP: 4400, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_124359_d8a4f29e-0142-49fb-87c9-897bd8a5dc02.png?v=1785761118&width=1200', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a', '#d6ae34'] },
+    { id: 'serpentinas', nombre: 'Serpentinas 20 rollitos', precioCOP: 5000, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_124356_beee1a68-f823-4a6d-bb51-96a29add06ec.png?v=1785761112&width=1200', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a', '#d6ae34'] },
     { id: 'party-popper', nombre: 'Cañón de confeti Party Popper', precioCOP: 6100, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260714_034738_1ade59d5-d8cd-47d0-aa81-a046f49ca841.png?v=1784001034&width=1200' },
   ],
   eventos: [
     { id: 'letrero-felicidades-evento', nombre: 'Letrero de globos Felicidades', precioCOP: 7800, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260716_200943_1c4dbfd8-5cd1-4b85-b7ea-41a55a46b24a.png?v=1784232657&width=1200' },
-    { id: 'set-graduacion-xy-l129', nombre: 'Set de graduación decoración XY-L129', precioCOP: 34600, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_130822_243b0a95-f104-4d23-ac6a-b9bce9b095a3.png?v=1785762645&width=1200' },
-    { id: 'set-graduacion-by-l474', nombre: 'Set de graduación decoración BY-L474', precioCOP: 34600, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_130937_c730bd8e-5b39-48f2-86b5-5233782ec428.png?v=1785762814&width=1200' },
-    { id: 'set-graduacion-by-l468', nombre: 'Set de graduación decoración BY-L468', precioCOP: 34600, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_130940_79e4a181-6318-4d66-a2e5-d6eac5887085.png?v=1785762821&width=1200' },
+    { id: 'set-graduacion-xy-l129', nombre: 'Set de graduación decoración XY-L129', precioCOP: 34600, descuentoPorcentaje: 15, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_130822_243b0a95-f104-4d23-ac6a-b9bce9b095a3.png?v=1785762645&width=1200' },
+    { id: 'set-graduacion-by-l474', nombre: 'Set de graduación decoración BY-L474', precioCOP: 34600, descuentoPorcentaje: 15, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_130937_c730bd8e-5b39-48f2-86b5-5233782ec428.png?v=1785762814&width=1200' },
+    { id: 'set-graduacion-by-l468', nombre: 'Set de graduación decoración BY-L468', precioCOP: 34600, descuentoPorcentaje: 15, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_130940_79e4a181-6318-4d66-a2e5-d6eac5887085.png?v=1785762821&width=1200' },
     { id: 'globo-copa-graduacion', nombre: 'Globo metálico copa graduación', precioCOP: 11300, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_125136_e55394d1-1a0a-4315-a297-871791a75317.png?v=1785762350&width=1200' },
     { id: 'collares-perlas', nombre: '12 collares de perlas en negro y dorado', precioCOP: 9000, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_131617_fc9291ab-1ef8-4f0f-ae8f-2ef39891cfd4.png?v=1785763140&width=1200' },
   ],
   'hora-loca': [
-    { id: 'espantasuegra', nombre: 'Espantasuegra X50', precioCOP: 4000, image: 'https://bombatex.com/cdn/shop/products/14569.jpg?v=1707421439' },
-    { id: 'pulsera-led', nombre: 'Manilla-pulsera luz LED varios colores x1 pza', precioCOP: 1300, image: 'https://bombatex.com/cdn/shop/files/0207-01.jpg?v=1729885233' },
+    { id: 'espantasuegra', nombre: 'Espantasuegra X50', precioCOP: 4000, image: 'https://bombatex.com/cdn/shop/products/14569.jpg?v=1707421439', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a'] },
+    { id: 'pulsera-led', nombre: 'Manilla-pulsera luz LED varios colores x1 pza', precioCOP: 1300, image: 'https://bombatex.com/cdn/shop/files/0207-01.jpg?v=1729885233', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a'] },
     { id: 'peluca-hora-loca', nombre: 'Peluca para hora loca y fiestas temáticas corta', precioCOP: 6500, image: 'https://bombatex.com/cdn/shop/files/7512-1A.jpg?v=1748293109' },
-    { id: 'manilla-glow-stick', nombre: 'Manilla luminosa neón LED Glow Stick x50', precioCOP: 9500, image: 'https://bombatex.com/cdn/shop/products/91391707415514.jpg?v=1707415518' },
-    { id: 'corbata-neon', nombre: 'Corbata cartón neón holográfica x12 pzas varios diseños', precioCOP: 5500, image: 'https://bombatex.com/cdn/shop/files/8001-00.jpg?v=1781371062' },
+    { id: 'manilla-glow-stick', nombre: 'Manilla luminosa neón LED Glow Stick x50', precioCOP: 9500, image: 'https://bombatex.com/cdn/shop/products/91391707415514.jpg?v=1707415518', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a'] },
+    { id: 'corbata-neon', nombre: 'Corbata cartón neón holográfica x12 pzas varios diseños', precioCOP: 5500, image: 'https://bombatex.com/cdn/shop/files/8001-00.jpg?v=1781371062', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a'] },
     { id: 'gafas-hora-loca', nombre: 'Gafas para hora loca', precioCOP: 1500, image: 'https://bombatex.com/cdn/shop/files/0209-2A.jpg?v=1726867474' },
     { id: 'manilla-led-delgada', nombre: 'Manilla luz LED delgada', precioCOP: 1200, image: 'https://bombatex.com/cdn/shop/files/0206-01_c297bcd6-b054-45d8-9ace-dbfe4221dbd0.jpg?v=1758551152' },
-    { id: 'gafas-estrellas', nombre: 'Gafas plásticas de fiesta carnaval estrellas surtidas x6', precioCOP: 3000, image: 'https://bombatex.com/cdn/shop/files/716-36.jpg?v=1721941765' },
+    { id: 'gafas-estrellas', nombre: 'Gafas plásticas de fiesta carnaval estrellas surtidas x6', precioCOP: 3000, image: 'https://bombatex.com/cdn/shop/files/716-36.jpg?v=1721941765', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a'] },
   ],
   desechables: [
     { id: 'platos-biodegradables-redondos', nombre: 'Platos biodegradables redondos varios tamaños x12 pzas', precioCOP: 2800, precioDesde: true, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_5.jpg?v=1740251911' },
@@ -52,3 +52,24 @@ export const productosCatalogo = {
     { id: 'portacomidas-biodegradable', nombre: 'Portacomidas contenedores eco-biodegradables varios tamaños x12 pzas', precioCOP: 6000, precioDesde: true, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto.jpg?v=1740252016' },
   ],
 };
+
+const existenciasDemo = {
+  'letrero-felicidades': 0,
+  'set-graduacion-by-l474': 0,
+  'espantasuegra': 0,
+  'platos-biodegradables-redondos': 0,
+};
+
+export const productosCatalogo = Object.fromEntries(
+  Object.entries(productosCatalogoBase).map(([categoria, productos]) => [
+    categoria,
+    productos.map((producto, index) => ({
+      ...producto,
+      marca: 'Fiesta Colombia',
+      stock: existenciasDemo[producto.id] ?? 8 + index * 2,
+      categoria,
+    })),
+  ])
+);
+
+export const productosCatalogoCompleto = Object.values(productosCatalogo).flat();
