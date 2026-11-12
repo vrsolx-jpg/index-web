@@ -5,8 +5,10 @@ import bateImage from '../../assets/bate.png';
 import gorrosImage from '../../assets/gorros.png';
 import lentesImage from '../../assets/lentes.png';
 import pinataImage from '../../assets/piañata.png';
+import fiestaColombiaLogo from '../../assets/fiesta-colombia-logo.png';
 import AboutQuotesPage from '../about/AboutQuotesPage.jsx';
 import Catalog from '../catalog/Catalog.jsx';
+import Chatbot from '../chatbot/Chatbot.jsx';
 import ProfileModal from '../profile/ProfileModal.jsx';
 import ProfilePanel from '../profile/ProfilePanel.jsx';
 import CartDrawer from '../shop/CartDrawer.jsx';
@@ -34,9 +36,9 @@ function HomePage() {
     window.location.hash === '#cotizaciones' ? 'cotizaciones' : 'inicio'
   ));
   const [chatAbierto, setChatAbierto] = useState(false);
-  const [mensaje, setMensaje] = useState('');
   const [authMode, setAuthMode] = useState(null);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const [catalogoAbierto, setcatalogoAbierto] = useState(false);
   const [pagoAbierto, setPagoAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(null);
   const [volverAPagar, setVolverAPagar] = useState(false);
@@ -44,7 +46,7 @@ function HomePage() {
   const usuario = useCurrentUser();
   const unidadesCarrito = getTotals(carrito).unidades;
   const [shareMessage, setShareMessage] = useState('');
-  const [catalogoAbierto, setCatalogoAbierto] = useState(false);
+  const [catalogoCompleto, setCatalogoCompleto] = useState(false);
   const catalogoRef = useRef(null);
   const catalogoFooterRef = useRef(null);
   const [animacion, setAnimacion] = useState({
@@ -67,25 +69,16 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('catalog-open', catalogoAbierto);
-    document.body.classList.toggle('catalog-open', catalogoAbierto);
+    if (!catalogoCompleto) return;
 
-    return () => {
-      document.documentElement.classList.remove('catalog-open');
-      document.body.classList.remove('catalog-open');
-    };
-  }, [catalogoAbierto]);
-
-  useEffect(() => {
-    if (!catalogoAbierto) return;
-
-    catalogoRef.current?.scrollIntoView({
+    window.scrollTo({
+      top: 0,
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
     });
-  }, [catalogoAbierto]);
+  }, [catalogoCompleto]);
 
   useEffect(() => {
-    if (!catalogoAbierto || !catalogoFooterRef.current) return undefined;
+    if (paginaActual !== 'inicio' || !catalogoFooterRef.current) return undefined;
 
     const observador = new IntersectionObserver(([entrada]) => {
       document.documentElement.classList.toggle('catalog-footer-visible', entrada.isIntersecting);
@@ -98,7 +91,7 @@ function HomePage() {
       document.documentElement.classList.remove('catalog-footer-visible');
       document.body.classList.remove('catalog-footer-visible');
     };
-  }, [catalogoAbierto]);
+  }, [paginaActual]);
 
   useEffect(() => {
     function cerrarModalConEscape(evento) {
@@ -218,26 +211,23 @@ function HomePage() {
     }
   }
 
-  function enviarMensaje(evento) {
-    evento.preventDefault();
-
-    if (!mensaje.trim()) return;
-
-    alert(
-      `¡Gracias por escribir a Fiesta Colombia!\nTu mensaje: ${mensaje}`
-    );
-    setMensaje('');
-  }
-
   if (paginaActual === 'cotizaciones') return <AboutQuotesPage />;
 
   return (
     <main>
-      <section className="welcome-stage" id="inicio">
+      <section
+        className={`welcome-stage${catalogoCompleto ? ' is-catalog-expanded' : ''}`}
+        id="inicio"
+      >
         <div className="welcome-frame">
           <header className="site-header welcome-site-header">
-            <a href="#inicio" className="brand">
-              FIESTA COLOMBIA
+            <a
+              href="#inicio"
+              className="brand"
+              onClick={() => setCatalogoCompleto(false)}
+            >
+              <img src={fiestaColombiaLogo} alt="" />
+              <span>FIESTA COLOMBIA</span>
             </a>
 
             <div className="header-actions">
@@ -295,6 +285,7 @@ function HomePage() {
           </header>
           <div
             className="welcome-card"
+            hidden={catalogoCompleto}
             style={{
               '--scene-color': animacion.colores.color,
               '--scene-text-color': animacion.colores.textColor,
@@ -349,18 +340,19 @@ function HomePage() {
                   <a
                     className="button catalog-button"
                     href="#productos"
-                    onClick={(evento) => {
-                      evento.preventDefault();
-                      setCatalogoAbierto(true);
-                    }}
                   >
+                    <span className="catalog-button-decoration" aria-hidden="true">
+                      <span>♡</span><span>✦</span>
+                    </span>
                     Explorar productos
+                    <span className="catalog-button-decoration" aria-hidden="true">
+                      <span>★</span><span>♡</span>
+                    </span>
                   </a>
                 </div>
               </div>
             </section>
 
-            {!catalogoAbierto && (
             <div className="welcome-footer">
               <span>© 2026 Fiesta Colombia</span>
               <div className="social-links" aria-label="Redes sociales y compartir">
@@ -391,20 +383,22 @@ function HomePage() {
                 </button>
               </div>
             </div>
-            )}
           </div>
         </div>
       </section>
 
-      {catalogoAbierto && (
-        <Catalog
-          catalogRef={catalogoRef}
-          catalogFooterRef={catalogoFooterRef}
-          onAddToCart={agregarAlCarrito}
-          onShare={compartirPagina}
-          onQuote={irACotizaciones}
-        />
-      )}
+
+      <Catalog
+        catalogRef={catalogoRef}
+        catalogFooterRef={catalogoFooterRef}
+        isExpanded={catalogoCompleto}
+        onAddToCart={agregarAlCarrito}
+        onShare={compartirPagina}
+        onQuote={irACotizaciones}
+        onOpenChat={() => setChatAbierto(true)}
+        onExpand={() => setCatalogoCompleto(true)}
+        onCollapse={() => setCatalogoCompleto(false)}
+      />
 
       {authMode && (
         <ProfileModal
@@ -464,71 +458,17 @@ function HomePage() {
         </div>
       )}
 
-      {chatAbierto && (
-        <aside className="chat-widget">
-          <div className="chat-heading">
-            <div>
-              <strong>Asistente de Fiesta</strong>
-              <small>¡Estamos aquí para ayudarte!</small>
-            </div>
-            <button
-              type="button"
-              onClick={() => setChatAbierto(false)}
-              aria-label="Cerrar asistente"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="chat-options">
-            <button type="button" onClick={() => setMensaje('Catálogo')}>
-              ▫️ Catálogo
-            </button>
-            <button type="button" onClick={() => setMensaje('Mis pedidos')}>
-              ▫️ Mis pedidos
-            </button>
-            <button
-              type="button"
-              onClick={() => setMensaje('Ideas para fiestas')}
-            >
-              ▫️ Ideas para fiestas
-            </button>
-            <button type="button" onClick={() => setMensaje('Ubicación')}>
-              ▫️ Ubicación
-            </button>
-            <button type="button" onClick={() => setMensaje('Asesoría')}>
-              ▫️ Asesoría
-            </button>
-          </div>
-
-          <form className="chat-form" onSubmit={enviarMensaje}>
-            <input
-              type="text"
-              placeholder="Escribe tu mensaje..."
-              value={mensaje}
-              onChange={(evento) => setMensaje(evento.target.value)}
-              aria-label="Escribe tu mensaje"
-            />
-            <button type="submit" aria-label="Enviar mensaje">
-              ↑
-            </button>
-          </form>
-
-          <div className="chat-powered">Fiesta Colombia · Atención virtual</div>
-        </aside>
-      )}
-
-      {!chatAbierto && (
-        <button
-          type="button"
-          className="chat-launcher"
-          aria-label="Abrir asistente"
-          onClick={() => setChatAbierto(true)}
-        >
-          ✦
-          <span aria-hidden="true">¿Necesitas ayuda?</span>
-        </button>
-      )}
+      <Chatbot
+        isOpen={chatAbierto}
+        onOpen={() => setChatAbierto(true)}
+        onClose={() => setChatAbierto(false)}
+        onBrowseCatalog={() => {
+          setChatAbierto(false);
+          catalogoRef.current?.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+          });
+        }}
+      />
     </main>
   );
 }
