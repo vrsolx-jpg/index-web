@@ -1,24 +1,36 @@
 import { useState } from 'react';
 import discoImage from '../../assets/disco.avif';
+import { loginUser, registerUser } from '../shop/shopStore.js';
 import './ProfileModal.css';
 
-function ProfileModal({ mode, onClose, onModeChange }) {
-  const [message, setMessage] = useState('');
+function ProfileModal({ mode, notice = '', onClose, onModeChange, onSuccess }) {
+  const [message, setMessage] = useState(notice);
 
-  function submitAccess(event) {
-    event.preventDefault();
+ function submitAccess(event) {
+  event.preventDefault();
 
-    if (
-      mode === 'register' &&
-      event.currentTarget.elements.password.value !==
-        event.currentTarget.elements.confirmPassword.value
-    ) {
-      setMessage('Las contraseñas no coinciden.');
-      return;
-    }
+  const campos = event.currentTarget.elements;
 
-    setMessage('El acceso de cuentas aún no está conectado.');
+  if (mode === 'register' && campos.password.value !== campos.confirmPassword.value) {
+    setMessage('Las contraseñas no coinciden.');
+    return;
   }
+
+  const resultado = mode === 'register'
+    ? registerUser({
+      name: campos.name.value,
+      email: campos.email.value,
+      password: campos.password.value,
+    })
+    : loginUser(campos.email.value, campos.password.value);
+
+  if (!resultado.ok) {
+    setMessage(resultado.error);
+    return;
+  }
+
+  onSuccess(mode);
+}
 
   function simulateGoogle() {
     setMessage('El registro con Google es una demostración y aún no está conectado.');

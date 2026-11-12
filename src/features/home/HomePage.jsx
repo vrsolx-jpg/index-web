@@ -8,6 +8,10 @@ import pinataImage from '../../assets/piañata.png';
 import AboutQuotesPage from '../about/AboutQuotesPage.jsx';
 import Catalog from '../catalog/Catalog.jsx';
 import ProfileModal from '../profile/ProfileModal.jsx';
+import ProfilePanel from '../profile/ProfilePanel.jsx';
+import CartDrawer from '../shop/CartDrawer.jsx';
+import CheckoutModal from '../shop/CheckoutModal.jsx';
+import { addToCart, getTotals, useCart, useCurrentUser } from '../shop/shopStore.js';
 import './HomePage.css';
 
 const objetosFiesta = [
@@ -32,6 +36,13 @@ function HomePage() {
   const [chatAbierto, setChatAbierto] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const [authMode, setAuthMode] = useState(null);
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const [pagoAbierto, setPagoAbierto] = useState(false);
+  const [perfilAbierto, setPerfilAbierto] = useState(null);
+  const [volverAPagar, setVolverAPagar] = useState(false);
+  const carrito = useCart();
+  const usuario = useCurrentUser();
+  const unidadesCarrito = getTotals(carrito).unidades;
   const [shareMessage, setShareMessage] = useState('');
   const [catalogoAbierto, setCatalogoAbierto] = useState(false);
   const catalogoRef = useRef(null);
@@ -91,7 +102,12 @@ function HomePage() {
 
   useEffect(() => {
     function cerrarModalConEscape(evento) {
-      if (evento.key === 'Escape') setAuthMode(null);
+      if (evento.key !== 'Escape') return;
+      setAuthMode(null);
+      setVolverAPagar(false);
+      setCarritoAbierto(false);
+      setPagoAbierto(false);
+      setPerfilAbierto(null);
     }
 
     window.addEventListener('keydown', cerrarModalConEscape);
@@ -133,6 +149,45 @@ function HomePage() {
   function mostrarPendiente(seccion) {
     setShareMessage(`${seccion} estará disponible próximamente.`);
   }
+
+  function agregarAlCarrito(producto) {
+      addToCart(producto);
+      setShareMessage(`${producto.nombre} se agregó al carrito.`);
+    }
+  
+    function iniciarPago() {
+      setCarritoAbierto(false);
+  
+      if (!usuario) {
+        setVolverAPagar(true);
+        setAuthMode('login');
+        return;
+      }
+      setPagoAbierto(true);
+    }
+  
+    function alAutenticar(modo) {
+      setAuthMode(null);
+  
+      if (volverAPagar) {
+        setVolverAPagar(false);
+        setPagoAbierto(true);
+        return;
+      }
+      setShareMessage(modo === 'register' ? '¡Tu cuenta está lista!' : 'Sesión iniciada.');
+    }
+  
+    function seguirExplorando() {
+      setCarritoAbierto(false);
+      setPagoAbierto(false);
+      setPerfilAbierto(null);
+      setCatalogoAbierto(true);
+    }
+  
+    function irAPedidos() {
+      setPagoAbierto(false);
+      setPerfilAbierto('pedidos');
+    }
 
   function irACotizaciones() {
     window.history.pushState({ pagina: 'cotizaciones' }, '', '#cotizaciones');
@@ -212,20 +267,23 @@ function HomePage() {
                 <button
                   type="button"
                   className="header-shortcut"
-                  aria-label="Carrito"
-                  onClick={() => mostrarPendiente('Carrito')}
+                  aria-label={`Carrito, ${unidadesCarrito} ${unidadesCarrito === 1 ? 'producto' : 'productos'}`}
+                  onClick={() => setCarritoAbierto(true)}
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" />
                     <circle cx="10" cy="20" r="1" />
                     <circle cx="18" cy="20" r="1" />
                   </svg>
+                  {unidadesCarrito > 0 && (
+                  <span className="cart-badge" aria-hidden="true">{unidadesCarrito}</span>
+                  )}
                 </button>
                 <button
                   type="button"
                   className="header-shortcut"
                   aria-label="Mi perfil"
-                  onClick={() => setAuthMode('register')}
+                  onClick={() => (usuario ? setPerfilAbierto('datos') : setAuthMode('login'))}
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <circle cx="12" cy="8" r="4" />
@@ -342,7 +400,7 @@ function HomePage() {
         <Catalog
           catalogRef={catalogoRef}
           catalogFooterRef={catalogoFooterRef}
-          onPending={mostrarPendiente}
+          onAddToCart={agregarAlCarrito}
           onShare={compartirPagina}
           onQuote={irACotizaciones}
         />
@@ -351,10 +409,54 @@ function HomePage() {
       {authMode && (
         <ProfileModal
           mode={authMode}
-          onClose={() => setAuthMode(null)}
+          notice={volverAPagar ? 'Inicia sesión o crea tu cuenta para pagar.' : ''}
+         onClose={() => {
+         setAuthMode(null);
+         setVolverAPagar(false);
+        }}
           onModeChange={setAuthMode}
+          onSuccess={alAutenticar}
         />
       )}
+
+      {carritoAbierto && (
+              <CartDrawer
+                onClose={() => setCarritoAbierto(false)}
+                onCheckout={iniciarPago}
+                onExplore={seguirExplorando}
+              />
+            )}
+      
+            {pagoAbierto && (
+              <CheckoutModal
+                onClose={() => setPagoAbierto(false)}
+                onViewOrders={irAPedidos}
+              />
+            )}
+      
+            {perfilAbierto && (
+              <ProfilePanel
+                initialTab={perfilAbierto}
+                onClose={() => setPerfilAbierto(null)}
+                onExplore={seguirExplorando}
+                onLogout={() => {
+                  setPerfilAbierto(null);
+                  setShareMessage('Cerraste sesión.');
+                }}
+              />
+            )}
+      
+            {catalogoAbierto && unidadesCarrito > 0 && !carritoAbierto && (
+              <button type="button" className="cart-fab" onClick={() => setCarritoAbierto(true)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" />
+                  <circle cx="10" cy="20" r="1" />
+                  <circle cx="18" cy="20" r="1" />
+                </svg>
+                Ver carrito
+                <span aria-hidden="true">{unidadesCarrito}</span>
+              </button>
+            )}
 
       {shareMessage && (
         <div className="share-status" role="status">

@@ -145,7 +145,7 @@ function ProductCard({ category, product, favorite, onFavorite, onAdd }) {
   );
 }
 
-function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) {
+function Catalog({ catalogRef, catalogFooterRef, onAddToCart, onShare, onQuote }) {
   const [selectedCategory, setSelectedCategory] = useState(categoriasCatalogo[0].id);
   const [showAll, setShowAll] = useState(false);
   const [favorites, setFavorites] = useState([]);
@@ -310,7 +310,7 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                     product={product}
                     favorite={favorites.includes(product.id)}
                     onFavorite={toggleFavorite}
-                    onAdd={() => onPending('Agregar al carrito')}
+                    onAdd={() => onAddToCart(product)}
                   />
                 ))}
               </div>
@@ -469,7 +469,7 @@ function Catalog({ catalogRef, catalogFooterRef, onPending, onShare, onQuote }) 
                         product={product}
                         favorite={favorites.includes(product.id)}
                         onFavorite={toggleFavorite}
-                        onAdd={() => onPending('Agregar al carrito')}
+                        onAdd={() => onAddToCart(product)}
                       />
                     ))}
                   </div>
