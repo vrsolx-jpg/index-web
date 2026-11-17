@@ -5,7 +5,6 @@ import {
   productosCatalogoCompleto,
 } from './catalogProducts.js';
 import logoFiesta from '../../assets/fiesta-colombia-logo.png';
-import SiteFooter from '../shared/SiteFooter.jsx';
 import './Catalog.css';
 
 const iconosCategoria = {
@@ -776,7 +775,6 @@ function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShar
         </div>
         <div className="catalog-footer-copyright">© 2026 Fiesta Colombia. Todos los derechos reservados.</div>
       </footer>
-      <SiteFooter onShare={onShare} footerRef={catalogFooterRef} />
     </>
   );
 }

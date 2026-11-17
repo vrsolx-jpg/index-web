@@ -331,6 +331,10 @@ function HomePage() {
                   evento.preventDefault();
                   mostrarPendiente('Nosotros');
                 }}>Nosotros</a>
+                <a href="#cotizaciones" onClick={(evento) => {
+                  evento.preventDefault();
+                  irACotizaciones();
+                }}>Cotizaciones</a>
                 <form
                   className="header-search"
                   role="search"
