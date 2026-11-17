@@ -687,7 +687,7 @@ function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShar
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onAdd={() => {
-            onPending('Agregar al carrito');
+            onAddToCart(selectedProduct);
             setSelectedProduct(null);
           }}
         />

@@ -803,8 +803,8 @@
     #fff0b3 36px,
     #b9eceb 36px,
     #b9eceb 42px,
-    #e8c9f4 42px,
-    #e8c9f4 54px
+    #f4c9d9 42px,
+    #f4c9d9 54px
   );
 }
 
@@ -1285,7 +1285,7 @@
   width: 78%;
   height: 86%;
   object-fit: contain;
-  filter: drop-shadow(0 18px 12px rgba(104, 49, 108, 0.18));
+  filter: drop-shadow(0 18px 12px rgba(108, 49, 71, 0.18));
 }
 
 .hero-object--slot-0 {
@@ -1525,7 +1525,7 @@
   transform: translateX(-50%);
   padding: 10px 16px;
   border-radius: 999px;
-  background: #292532;
+  background: #33222a;
   color: #fff;
   font-size: 13px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
@@ -2152,7 +2152,7 @@
   padding: 12px 22px;
   gap: 14px;
   font-size: clamp(15px, 1.4vw, 18px);
-  box-shadow: 0 8px 20px rgba(49, 18, 40, 0.2);
+  box-shadow: 0 8px 20px rgba(49, 18, 30, 0.2);
 }
 
 .catalog-button-decoration {

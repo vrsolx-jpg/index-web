@@ -8,7 +8,7 @@
   place-items: center;
   overflow: auto;
   padding: 24px;
-  background: rgba(20, 12, 28, 0.78);
+  background: rgba(28, 12, 18, 0.78);
   backdrop-filter: blur(7px);
 }
 
@@ -19,10 +19,10 @@
   width: min(100%, 940px);
   min-height: min(600px, calc(100svh - 48px));
   overflow: hidden;
-  border: 1px solid rgba(53, 0, 71, 0.16);
+  border: 1px solid rgba(71, 0, 26, 0.16);
   border-radius: 30px;
   background: #fff;
-  color: #6b2580;
+  color: #b02a62;
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
 }
 
@@ -51,7 +51,7 @@
   position: absolute;
   z-index: 1;
   inset: 0;
-  background: linear-gradient(180deg, rgba(42, 0, 61, 0.02) 35%, rgba(34, 0, 52, 0.82));
+  background: linear-gradient(180deg, rgba(61, 0, 22, 0.02) 35%, rgba(52, 0, 19, 0.82));
   content: '';
 }
 
@@ -104,13 +104,13 @@
   border: 0;
   border-radius: 50%;
   background: #fff;
-  color: #6b2580;
+  color: #b02a62;
   font-size: 25px;
 }
 
 .auth-kicker {
   margin: 0 0 4px;
-  color: #6b2580;
+  color: #b02a62;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.13em;
@@ -118,7 +118,7 @@
 
 .auth-dialog h2 {
   margin: 0;
-  color: #6b2580;
+  color: #b02a62;
   font-family: 'Baloo 2', 'DM Sans', sans-serif;
   font-size: clamp(30px, 4vw, 38px);
   line-height: 1.05;
@@ -126,7 +126,7 @@
 
 .auth-welcome {
   margin: 8px 0 20px;
-  color: #765d7e;
+  color: #82616d;
   font-size: 14px;
 }
 
@@ -137,10 +137,10 @@
   gap: 10px;
   width: 100%;
   min-height: 44px;
-  border: 1px solid #6b2580;
+  border: 1px solid #b02a62;
   border-radius: 999px;
   background: #fff;
-  color: #6b2580;
+  color: #b02a62;
   font-size: 13px;
   font-weight: 700;
   transition: background-color 0.18s ease, transform 0.18s ease;
@@ -148,7 +148,7 @@
 
 .google-signup:hover {
   transform: translateY(-1px);
-  background: #faf6fb;
+  background: #fbf6f8;
 }
 
 .google-mark {
@@ -169,7 +169,7 @@
   align-items: center;
   gap: 12px;
   margin: 18px 0;
-  color: #746b77;
+  color: #776b6f;
   font-size: 12px;
 }
 
@@ -177,7 +177,7 @@
 .auth-divider::after {
   height: 1px;
   flex: 1;
-  background: #ded8e1;
+  background: #e1d8db;
   content: '';
 }
 
@@ -195,7 +195,7 @@
 .auth-form label {
   display: grid;
   gap: 6px;
-  color: #704b7b;
+  color: #8f3d5f;
   font-size: 12px;
   font-weight: 600;
 }
@@ -205,21 +205,21 @@
   min-width: 0;
   min-height: 42px;
   padding: 9px 13px;
-  border: 2px solid #6b2580;
+  border: 2px solid #b02a62;
   border-radius: 999px;
   outline: none;
   background: #fff;
-  color: #6b2580;
+  color: #b02a62;
   font-size: 13px;
   transition: border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .auth-form input:not([type="checkbox"])::placeholder {
-  color: #928a96;
+  color: #968a8e;
 }
 
 .auth-form input:not([type="checkbox"]):focus {
-  border-color: #6b2580;
+  border-color: #b02a62;
   background: #fff;
 }
 
@@ -237,12 +237,12 @@
   min-height: 17px;
   height: 17px;
   margin: 1px 0 0;
-  accent-color: #6b2580;
+  accent-color: #b02a62;
 }
 
 .auth-terms a,
 .auth-forgot {
-  color: #6b2580;
+  color: #b02a62;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -252,17 +252,17 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #6b2580;
+  color: #b02a62;
   font-size: 12px;
 }
 
 .auth-submit {
   min-height: 44px;
   padding: 10px 18px;
-  border: 1px solid #6b2580;
+  border: 1px solid #b02a62;
   border-radius: 999px;
   background: #fff;
-  color: #6b2580;
+  color: #b02a62;
   font-weight: 700;
   transition: filter 0.18s ease, transform 0.18s ease;
 }
@@ -278,7 +278,7 @@
   justify-content: center;
   gap: 5px;
   margin: 18px 0 0;
-  color: #765d7e;
+  color: #82616d;
   font-size: 12px;
 }
 
@@ -286,14 +286,14 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #6b2580;
+  color: #b02a62;
   font-size: inherit;
   font-weight: 700;
 }
 
 .auth-message {
   margin: 0;
-  color: #6b2580;
+  color: #b02a62;
   font-size: 12px;
   text-align: center;
 }
@@ -348,7 +348,7 @@
   .auth-content .auth-close {
     top: -154px;
     right: 12px;
-    background: rgba(37, 0, 51, 0.45);
+    background: rgba(51, 0, 19, 0.45);
     color: #fff;
   }
 }

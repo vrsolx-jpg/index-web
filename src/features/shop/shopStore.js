@@ -6,6 +6,8 @@ const CLAVES = {
   usuarios: 'fc_usuarios',
   sesion: 'fc_sesion',
   pedidos: 'fc_pedidos',
+  tarjetas: 'fc_tarjetas',
+  direcciones: 'fc_direcciones',
 };
 
 export const ENVIO = { tarifa: 6000, gratisDesde: 50000 };
@@ -146,6 +148,8 @@ export function registerUser({ name, email, password }) {
     phone: '',
     city: '',
     address: '',
+    documentType: 'CC',
+    documentNumber: '',
     createdAt: new Date().toISOString(),
   };
   escribir(CLAVES.usuarios, [...usuarios, usuario]);
@@ -172,7 +176,7 @@ export function updateUser(cambios) {
   const correo = leer(CLAVES.sesion, null);
   if (!correo) return;
 
-  const permitidos = ['name', 'phone', 'city', 'address'];
+  const permitidos = ['name', 'phone', 'city', 'address', 'documentType', 'documentNumber'];
   const limpios = Object.fromEntries(
     permitidos
       .filter((campo) => campo in cambios)
@@ -202,7 +206,7 @@ function generarNumeroPedido() {
 }
 
 /* Crea el pedido con lo que hay en el carrito y lo vacía. Devuelve el pedido. */
-export function placeOrder({ entrega, pago }) {
+export function placeOrder({ entrega, pago, referencia = '', estado = 'Pago aprobado' }) {
   const correo = leer(CLAVES.sesion, null);
   const lineas = leer(CLAVES.carrito, VACIO);
   if (!correo || lineas.length === 0) return null;
@@ -211,14 +215,141 @@ export function placeOrder({ entrega, pago }) {
     id: generarNumeroPedido(),
     email: correo,
     createdAt: new Date().toISOString(),
-    estado: 'Pago aprobado',
+    estado,
     lineas,
     ...getTotals(lineas),
     entrega,
     pago,
+    referencia,
   };
 
   escribir(CLAVES.pedidos, [pedido, ...leer(CLAVES.pedidos, VACIO)]);
   clearCart();
   return pedido;
+}
+
+/* ---------- Datos guardados por usuario (tarjetas y direcciones) ---------- */
+
+function generarId(prefijo) {
+  return `${prefijo}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function useUserList(clave) {
+  const correo = useSyncExternalStore(suscribir, () => leer(CLAVES.sesion, null));
+  const todos = useSyncExternalStore(suscribir, () => leer(clave, VACIO));
+  return useMemo(() => todos.filter((item) => item.email === correo), [todos, correo]);
+}
+
+/* Reemplaza la lista del usuario actual sin tocar la de otros usuarios. */
+function guardarListaDelUsuario(clave, siguientes) {
+  const correo = leer(CLAVES.sesion, null);
+  if (!correo) return;
+  const deOtros = leer(clave, VACIO).filter((item) => item.email !== correo);
+  escribir(clave, [...siguientes, ...deOtros]);
+}
+
+function listaDelUsuario(clave) {
+  const correo = leer(CLAVES.sesion, null);
+  return leer(clave, VACIO).filter((item) => item.email === correo);
+}
+
+function marcarPredeterminado(lista, id) {
+  return lista.map((item) => ({ ...item, predeterminada: item.id === id }));
+}
+
+/* Tarjetas: solo se guardan marca, últimos 4 dígitos, titular y vencimiento.
+   El número completo y el CVV nunca se almacenan. */
+export function useCards() {
+  return useUserList(CLAVES.tarjetas);
+}
+
+export function addCard({ marca, ultimos4, titular, vence, tipo }) {
+  const correo = leer(CLAVES.sesion, null);
+  if (!correo) return null;
+
+  const actuales = listaDelUsuario(CLAVES.tarjetas);
+  const repetida = actuales.find((tarjeta) => (
+    tarjeta.marca === marca && tarjeta.ultimos4 === ultimos4 && tarjeta.vence === vence
+  ));
+  if (repetida) return repetida;
+
+  const tarjeta = {
+    id: generarId('tj'),
+    email: correo,
+    marca,
+    ultimos4,
+    titular: titular.trim(),
+    vence,
+    tipo,
+    predeterminada: actuales.length === 0,
+    creadaEn: new Date().toISOString(),
+  };
+  guardarListaDelUsuario(CLAVES.tarjetas, [...actuales, tarjeta]);
+  return tarjeta;
+}
+
+export function removeCard(id) {
+  const restantes = listaDelUsuario(CLAVES.tarjetas).filter((tarjeta) => tarjeta.id !== id);
+  if (restantes.length > 0 && !restantes.some((tarjeta) => tarjeta.predeterminada)) {
+    restantes[0] = { ...restantes[0], predeterminada: true };
+  }
+  guardarListaDelUsuario(CLAVES.tarjetas, restantes);
+}
+
+export function setDefaultCard(id) {
+  guardarListaDelUsuario(CLAVES.tarjetas, marcarPredeterminado(listaDelUsuario(CLAVES.tarjetas), id));
+}
+
+export function useAddresses() {
+  return useUserList(CLAVES.direcciones);
+}
+
+const CAMPOS_DIRECCION = ['alias', 'nombre', 'telefono', 'ciudad', 'direccion', 'indicaciones'];
+
+/* Crea la dirección o, si trae id, la actualiza. Devuelve la dirección guardada. */
+export function saveAddress(datos) {
+  const correo = leer(CLAVES.sesion, null);
+  if (!correo) return null;
+
+  const actuales = listaDelUsuario(CLAVES.direcciones);
+  const limpios = Object.fromEntries(
+    CAMPOS_DIRECCION.map((campo) => [campo, String(datos[campo] ?? '').trim()]),
+  );
+
+  let guardada;
+  let siguientes;
+  if (datos.id && actuales.some((direccion) => direccion.id === datos.id)) {
+    siguientes = actuales.map((direccion) => (
+      direccion.id === datos.id ? { ...direccion, ...limpios } : direccion
+    ));
+    guardada = siguientes.find((direccion) => direccion.id === datos.id);
+  } else {
+    guardada = {
+      id: generarId('dir'),
+      email: correo,
+      ...limpios,
+      predeterminada: actuales.length === 0,
+      creadaEn: new Date().toISOString(),
+    };
+    siguientes = [...actuales, guardada];
+  }
+
+  if (datos.predeterminada) siguientes = marcarPredeterminado(siguientes, guardada.id);
+  guardarListaDelUsuario(CLAVES.direcciones, siguientes);
+  return guardada;
+}
+
+export function removeAddress(id) {
+  const restantes = listaDelUsuario(CLAVES.direcciones).filter((direccion) => direccion.id !== id);
+  if (restantes.length > 0 && !restantes.some((direccion) => direccion.predeterminada)) {
+    restantes[0] = { ...restantes[0], predeterminada: true };
+  }
+  guardarListaDelUsuario(CLAVES.direcciones, restantes);
+}
+
+export function setDefaultAddress(id) {
+  guardarListaDelUsuario(
+    CLAVES.direcciones,
+    marcarPredeterminado(listaDelUsuario(CLAVES.direcciones), id),
+  );
 }

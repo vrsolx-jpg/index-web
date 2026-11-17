@@ -10,7 +10,7 @@ import AboutQuotesPage from '../about/AboutQuotesPage.jsx';
 import Catalog from '../catalog/Catalog.jsx';
 import Chatbot from '../chatbot/Chatbot.jsx';
 import ProfileModal from '../profile/ProfileModal.jsx';
-import ProfilePanel from '../profile/ProfilePanel.jsx';
+import ProfilePage from '../profile/ProfilePage.jsx';
 import CartDrawer from '../shop/CartDrawer.jsx';
 import CheckoutModal from '../shop/CheckoutModal.jsx';
 import { addToCart, getTotals, useCart, useCurrentUser } from '../shop/shopStore.js';
@@ -18,11 +18,24 @@ import './HomePage.css';
 
 const objetosFiesta = [
   { id: 'pinata', imagen: pinataImage, color: '#FFD4C4', textColor: '#E9884A', textOutline: '#A64E24' },
-  { id: 'gorros', imagen: gorrosImage, color: '#C4D8F9', textColor: '#483b7e', textOutline: '#160842' },
+  { id: 'gorros', imagen: gorrosImage, color: '#C4D8F9', textColor: '#2f4a8f', textOutline: '#0f2150' },
   { id: 'lentes', imagen: lentesImage, color: '#e9f5af', textColor: '#86c336', textOutline: '#4C741D' },
-  { id: 'bate', imagen: bateImage, color: '#E9CCF3', textColor: '#4D045D' },
+  { id: 'bate', imagen: bateImage, color: '#f7c9d9', textColor: '#8a1646', textOutline: '#4d0a26' },
   { id: 'antifaz', imagen: antifazImage, color: '#F4ADBD', textColor: '#B5185F' },
 ];
+
+const SECCIONES_PERFIL = ['cuenta', 'pedidos', 'tarjetas', 'direcciones'];
+
+/* Rutas con hash: #cotizaciones, #perfil, #perfil/pedidos, #perfil/tarjetas, #perfil/direcciones */
+function leerHash() {
+  const hash = window.location.hash;
+  if (hash === '#cotizaciones') return { pagina: 'cotizaciones', seccion: 'cuenta' };
+  if (hash === '#perfil' || hash.startsWith('#perfil/')) {
+    const seccion = hash.split('/')[1];
+    return { pagina: 'perfil', seccion: SECCIONES_PERFIL.includes(seccion) ? seccion : 'cuenta' };
+  }
+  return { pagina: 'inicio', seccion: 'cuenta' };
+}
 
 const decoracionesBienvenida = [
   { icono: '♡', x: 8, y: 17 }, { icono: '✦', x: 24, y: 75 },
@@ -32,15 +45,13 @@ const decoracionesBienvenida = [
 ];
 
 function HomePage() {
-  const [paginaActual, setPaginaActual] = useState(() => (
-    window.location.hash === '#cotizaciones' ? 'cotizaciones' : 'inicio'
-  ));
+  const [paginaActual, setPaginaActual] = useState(() => leerHash().pagina);
+  const [seccionPerfil, setSeccionPerfil] = useState(() => leerHash().seccion);
   const [chatAbierto, setChatAbierto] = useState(false);
   const [authMode, setAuthMode] = useState(null);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
-  const [catalogoAbierto, setcatalogoAbierto] = useState(false);
+  const [catalogoAbierto, setCatalogoAbierto] = useState(false);
   const [pagoAbierto, setPagoAbierto] = useState(false);
-  const [perfilAbierto, setPerfilAbierto] = useState(null);
   const [volverAPagar, setVolverAPagar] = useState(false);
   const carrito = useCart();
   const usuario = useCurrentUser();
@@ -49,6 +60,7 @@ function HomePage() {
   const [catalogoCompleto, setCatalogoCompleto] = useState(false);
   const catalogoRef = useRef(null);
   const catalogoFooterRef = useRef(null);
+  const scrollAProductos = useRef(false);
   const [animacion, setAnimacion] = useState({
     fila: objetosFiesta,
     saliendo: null,
@@ -57,7 +69,9 @@ function HomePage() {
 
   useEffect(() => {
     function sincronizarPagina() {
-      setPaginaActual(window.location.hash === '#cotizaciones' ? 'cotizaciones' : 'inicio');
+      const { pagina, seccion } = leerHash();
+      setPaginaActual(pagina);
+      setSeccionPerfil(seccion);
     }
 
     window.addEventListener('popstate', sincronizarPagina);
@@ -67,6 +81,14 @@ function HomePage() {
       window.removeEventListener('hashchange', sincronizarPagina);
     };
   }, []);
+
+  useEffect(() => {
+    if (paginaActual !== 'inicio' || !scrollAProductos.current) return;
+    scrollAProductos.current = false;
+    catalogoRef.current?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    });
+  }, [paginaActual]);
 
   useEffect(() => {
     if (!catalogoCompleto) return;
@@ -100,7 +122,6 @@ function HomePage() {
       setVolverAPagar(false);
       setCarritoAbierto(false);
       setPagoAbierto(false);
-      setPerfilAbierto(null);
     }
 
     window.addEventListener('keydown', cerrarModalConEscape);
@@ -173,13 +194,28 @@ function HomePage() {
     function seguirExplorando() {
       setCarritoAbierto(false);
       setPagoAbierto(false);
-      setPerfilAbierto(null);
       setCatalogoAbierto(true);
+      if (paginaActual !== 'inicio') irAInicio(true);
     }
-  
+
+    function irAInicio(aProductos = false) {
+      scrollAProductos.current = aProductos;
+      window.history.pushState({ pagina: 'inicio' }, '', aProductos ? '#productos' : '#inicio');
+      setPaginaActual('inicio');
+      if (!aProductos) window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    function irAPerfil(seccion = 'cuenta') {
+      const destino = seccion === 'cuenta' ? '#perfil' : `#perfil/${seccion}`;
+      if (window.location.hash !== destino) window.history.pushState({ pagina: 'perfil' }, '', destino);
+      setSeccionPerfil(seccion);
+      setPaginaActual('perfil');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
     function irAPedidos() {
       setPagoAbierto(false);
-      setPerfilAbierto('pedidos');
+      irAPerfil('pedidos');
     }
 
   function irACotizaciones() {
@@ -212,6 +248,65 @@ function HomePage() {
   }
 
   if (paginaActual === 'cotizaciones') return <AboutQuotesPage />;
+
+  const capasCompartidas = (
+    <>
+      {authMode && (
+        <ProfileModal
+          mode={authMode}
+          notice={volverAPagar ? 'Inicia sesión o crea tu cuenta para pagar.' : ''}
+          onClose={() => {
+            setAuthMode(null);
+            setVolverAPagar(false);
+          }}
+          onModeChange={setAuthMode}
+          onSuccess={alAutenticar}
+        />
+      )}
+
+      {carritoAbierto && (
+        <CartDrawer
+          onClose={() => setCarritoAbierto(false)}
+          onCheckout={iniciarPago}
+          onExplore={seguirExplorando}
+        />
+      )}
+
+      {pagoAbierto && (
+        <CheckoutModal
+          onClose={() => setPagoAbierto(false)}
+          onViewOrders={irAPedidos}
+        />
+      )}
+
+      {shareMessage && (
+        <div className="share-status" role="status">
+          {shareMessage}
+        </div>
+      )}
+    </>
+  );
+
+  if (paginaActual === 'perfil') {
+    return (
+      <>
+        <ProfilePage
+          seccion={seccionPerfil}
+          cartCount={unidadesCarrito}
+          onSeccion={irAPerfil}
+          onHome={() => irAInicio(false)}
+          onExplore={seguirExplorando}
+          onOpenCart={() => setCarritoAbierto(true)}
+          onLogin={() => setAuthMode('login')}
+          onLogout={() => {
+            irAInicio(false);
+            setShareMessage('Cerraste sesión.');
+          }}
+        />
+        {capasCompartidas}
+      </>
+    );
+  }
 
   return (
     <main>
@@ -273,7 +368,7 @@ function HomePage() {
                   type="button"
                   className="header-shortcut"
                   aria-label="Mi perfil"
-                  onClick={() => (usuario ? setPerfilAbierto('datos') : setAuthMode('login'))}
+                  onClick={() => (usuario ? irAPerfil('cuenta') : setAuthMode('login'))}
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <circle cx="12" cy="8" r="4" />
@@ -400,47 +495,9 @@ function HomePage() {
         onCollapse={() => setCatalogoCompleto(false)}
       />
 
-      {authMode && (
-        <ProfileModal
-          mode={authMode}
-          notice={volverAPagar ? 'Inicia sesión o crea tu cuenta para pagar.' : ''}
-         onClose={() => {
-         setAuthMode(null);
-         setVolverAPagar(false);
-        }}
-          onModeChange={setAuthMode}
-          onSuccess={alAutenticar}
-        />
-      )}
+      {capasCompartidas}
 
-      {carritoAbierto && (
-              <CartDrawer
-                onClose={() => setCarritoAbierto(false)}
-                onCheckout={iniciarPago}
-                onExplore={seguirExplorando}
-              />
-            )}
-      
-            {pagoAbierto && (
-              <CheckoutModal
-                onClose={() => setPagoAbierto(false)}
-                onViewOrders={irAPedidos}
-              />
-            )}
-      
-            {perfilAbierto && (
-              <ProfilePanel
-                initialTab={perfilAbierto}
-                onClose={() => setPerfilAbierto(null)}
-                onExplore={seguirExplorando}
-                onLogout={() => {
-                  setPerfilAbierto(null);
-                  setShareMessage('Cerraste sesión.');
-                }}
-              />
-            )}
-      
-            {catalogoAbierto && unidadesCarrito > 0 && !carritoAbierto && (
+      {catalogoAbierto && unidadesCarrito > 0 && !carritoAbierto && (
               <button type="button" className="cart-fab" onClick={() => setCarritoAbierto(true)}>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" />
@@ -451,12 +508,6 @@ function HomePage() {
                 <span aria-hidden="true">{unidadesCarrito}</span>
               </button>
             )}
-
-      {shareMessage && (
-        <div className="share-status" role="status">
-          {shareMessage}
-        </div>
-      )}
 
       <Chatbot
         isOpen={chatAbierto}
