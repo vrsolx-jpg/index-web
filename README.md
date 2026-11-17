@@ -14,3 +14,9 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+## Cotizaciones
+
+Para habilitar el botón de pago, define `VITE_PAYMENT_URL` en `.env.local` con la URL de la pasarela. La creación y validación de la sesión de pago debe realizarse en un backend antes de usarlo en producción.
+
+Las recomendaciones de paquetes usan `unidadesPorPaquete` en los productos del catálogo y calculan los paquetes necesarios por persona (redondeando hacia arriba). El tamaño del lugar se conserva como contexto; no modifica cantidades hasta definir reglas para decoración.

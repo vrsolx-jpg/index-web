@@ -46,8 +46,8 @@ const productosCatalogoBase = {
     { id: 'gafas-estrellas', nombre: 'Gafas plásticas de fiesta carnaval estrellas surtidas x6', precioCOP: 3000, image: 'https://bombatex.com/cdn/shop/files/716-36.jpg?v=1721941765', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a'] },
   ],
   desechables: [
-    { id: 'platos-biodegradables-redondos', nombre: 'Platos biodegradables redondos varios tamaños x12 pzas', precioCOP: 2800, precioDesde: true, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_5.jpg?v=1740251911' },
-    { id: 'platos-biodegradables-cuadrados', nombre: 'Platos eco-biodegradables cuadrados varios tamaños x12 pzas', precioCOP: 3850, precioDesde: true, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_4.jpg?v=1740251949' },
+    { id: 'platos-biodegradables-redondos', nombre: 'Platos biodegradables redondos varios tamaños x12 pzas', precioCOP: 2800, precioDesde: true, unidadesPorPaquete: 12, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_5.jpg?v=1740251911' },
+    { id: 'platos-biodegradables-cuadrados', nombre: 'Platos eco-biodegradables cuadrados varios tamaños x12 pzas', precioCOP: 3850, precioDesde: true, unidadesPorPaquete: 12, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_4.jpg?v=1740251949' },
     { id: 'taza-biodegradable', nombre: 'Platos eco-biodegradables taza o cuencos varios tamaños x12 pzas', precioCOP: 3000, precioDesde: true, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_2.jpg?v=1740251982' },
     { id: 'portacomidas-biodegradable', nombre: 'Portacomidas contenedores eco-biodegradables varios tamaños x12 pzas', precioCOP: 6000, precioDesde: true, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto.jpg?v=1740252016' },
   ],
