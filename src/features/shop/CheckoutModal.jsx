@@ -82,7 +82,7 @@ function Resumen({ lineas, totales }) {
   );
 }
 
-function CheckoutModal({ onClose, onViewOrders }) {
+function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders }) {
   const usuario = useCurrentUser();
   const carrito = useCart();
   const direcciones = useAddresses();
@@ -156,8 +156,8 @@ function CheckoutModal({ onClose, onViewOrders }) {
   const marcaNueva = detectarMarca(tarjeta.numero);
   const esCredito = (tarjetaGuardada?.tipo ?? tarjeta.tipo) === 'credito';
 
-  const lineas = pedido ? pedido.lineas : carrito;
-  const totales = pedido ?? getTotals(carrito);
+  const lineas = pedido?.lineas ?? lineasCotizacion ?? carrito;
+  const totales = pedido ?? getTotals(lineas);
   const indicePaso = fase === 'listo' ? 2 : paso - 1;
   const restante = nequiSesion ? Math.max(0, Math.ceil((nequiSesion.expira - ahora) / 1000)) : 0;
   const codigoVencido = nequiSesion !== null && restante === 0;
@@ -222,10 +222,10 @@ function CheckoutModal({ onClose, onViewOrders }) {
   }
 
   function finalizar({ pago, referencia = '', estado = 'Pago aprobado' }) {
-    const nuevo = placeOrder({ entrega: entregaActual, pago, referencia, estado });
+    const nuevo = placeOrder({ entrega: entregaActual, pago, referencia, estado, lineasCotizacion });
 
     if (!nuevo) {
-      setError('No pudimos crear el pedido porque tu carrito está vacío.');
+      setError('No pudimos crear el pedido. Verifica tu sesión y los productos seleccionados.');
       setFase('formulario');
       return;
     }
@@ -261,6 +261,7 @@ function CheckoutModal({ onClose, onViewOrders }) {
 
     setPedido(nuevo);
     setFase('listo');
+    onOrderPlaced?.(nuevo);
   }
 
   function generarCodigoNequi() {
@@ -414,7 +415,7 @@ function CheckoutModal({ onClose, onViewOrders }) {
       );
     }
 
-    if (carrito.length === 0) {
+    if (lineas.length === 0) {
       return (
         <div className="checkout-status">
           <h2>Tu carrito está vacío</h2>

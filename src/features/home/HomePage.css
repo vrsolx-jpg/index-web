@@ -608,17 +608,6 @@
   gap: 54px;
 }
 
-.welcome-site-header {
-  width: 100%;
-  min-height: 76px;
-  margin: 0 auto;
-  border-radius: 0 0 18px 18px;
-}
-
-.welcome-site-header::after {
-  bottom: -19px;
-}
-
 .welcome-card {
   flex: none;
   height: clamp(520px, calc(100svh - 190px), 760px);
@@ -658,12 +647,6 @@
 
 #inicio .welcome-frame {
   margin-top: 0;
-}
-
-#inicio .welcome-site-header {
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  border-radius: 0;
 }
 
 @media (max-width: 380px) {
@@ -1821,25 +1804,27 @@
   position: relative;
   z-index: 2;
   flex: 0 0 auto;
-  width: 100vw;
+  width: 100%;
   height: auto;
   min-height: 76px;
-  padding: 14px clamp(22px, 5vw, 76px);
-  margin-left: calc(50% - 50vw);
+  padding: 14px max(22px, calc((100% - 1480px) / 2));
+  margin: 0;
+  border: 0;
   border-radius: 0;
   background: var(--header-bg);
   color: var(--header-ink);
+  box-shadow: none;
 }
 
 .welcome-site-header::after {
   position: absolute;
   right: 0;
-  bottom: -19px;
+  top: calc(100% - 1px);
   left: 0;
-  height: 20px;
+  height: 21px;
   background: var(--header-bg);
   content: '';
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 40' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 12C38 11 76 33 150 30C228 27 244 4 340 6C438 8 472 29 600 18V40H0Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 40' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 0H600V18C472 29 438 8 340 6C244 4 228 27 150 30C76 33 38 11 0 12Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
   pointer-events: none;
 }
 
@@ -1887,11 +1872,14 @@
 }
 
 .welcome-site-header .header-search {
+  position: relative;
   width: clamp(160px, 16vw, 240px);
 }
 
 .welcome-site-header .header-search input {
+  width: 100%;
   min-height: 40px;
+  padding-right: 34px;
   border-color: rgba(255, 255, 255, 0.85);
   background: rgba(255, 255, 255, 0.12);
   color: var(--header-ink);
@@ -1903,7 +1891,28 @@
 }
 
 .welcome-site-header .header-search button {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--header-ink);
+  transform: translateY(-50%);
+}
+
+.welcome-site-header .header-search button svg {
+  display: block;
+  width: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
 }
 
 .welcome-site-header .header-shortcut-actions {
@@ -1950,7 +1959,7 @@
 @media (max-width: 760px) {
   .welcome-site-header {
     min-height: 64px;
-    padding: 10px max(14px, 4vw);
+    padding: 10px 14px;
   }
 
   .welcome-site-header .brand {
@@ -1958,8 +1967,8 @@
   }
 
   .welcome-site-header .brand img {
-    width: 32px;
-    height: 32px;
+    width: 27px;
+    height: 27px;
   }
 
   .welcome-site-header .header-actions {
@@ -1981,13 +1990,7 @@
   .welcome-site-header .header-search input {
     min-height: 34px;
     padding-left: 10px;
-    gap: 4px;
     font-size: 9px;
-  }
-
-  .welcome-site-header .brand img {
-    width: 27px;
-    height: 27px;
   }
 
   .welcome-site-header .header-shortcut-actions {
@@ -1998,6 +2001,38 @@
     width: 34px;
     height: 34px;
     padding: 7px;
+  }
+}
+
+@media (max-width: 520px) {
+  .welcome-site-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+  }
+
+  .welcome-site-header .header-actions {
+    display: contents;
+  }
+
+  .welcome-site-header .header-shortcut-actions {
+    grid-area: 1 / 2;
+  }
+
+  .welcome-site-header .header-quick-nav {
+    grid-column: 1 / -1;
+    gap: 12px;
+  }
+
+  .welcome-site-header .header-quick-nav a,
+  .welcome-site-header .header-search input {
+    font-size: 12px;
+  }
+
+  .welcome-site-header .header-search {
+    flex: 1;
+    min-width: 0;
+    width: auto;
   }
 }
 
@@ -2021,28 +2056,6 @@
   gap: 54px;
 }
 
-#inicio .welcome-site-header {
-  left: 0;
-  width: 100%;
-  min-height: 76px;
-  margin: 0;
-  padding-right: max(22px, calc((100% - 1480px) / 2));
-  padding-left: max(22px, calc((100% - 1480px) / 2));
-  border: 0;
-  background: #d92e70;
-  box-shadow: none;
-}
-
-#inicio .welcome-site-header::after {
-  right: 0;
-  top: calc(100% - 1px);
-  bottom: auto;
-  left: 0;
-  height: 21px;
-  background: #d92e70;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 40' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 0H600V18C472 29 438 8 340 6C244 4 228 27 150 30C76 33 38 11 0 12Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
-}
-
 #inicio .welcome-card {
   display: grid;
   flex: 0 0 auto;
@@ -2060,61 +2073,9 @@
   min-height: 0;
 }
 
-.welcome-floating-decorations {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.welcome-floating-decoration {
-  position: absolute;
-  display: block;
-  color: #d20b45;
-  font-size: clamp(20px, 2.4vw, 36px);
-  line-height: 1;
-  opacity: 0.62;
-  text-shadow: 0 2px 8px rgba(173, 0, 52, 0.28);
-  animation: welcome-decoration-twinkle var(--decoration-duration) ease-in-out var(--decoration-delay) infinite;
-  will-change: transform, opacity;
-}
-
-.welcome-floating-decoration:nth-child(3n) {
-  color: #b9003a;
-  font-size: clamp(16px, 1.8vw, 28px);
-}
-
-@keyframes welcome-decoration-twinkle {
-  0%, 100% {
-    opacity: 0.28;
-    transform: translate3d(0, 0, 0) rotate(-12deg) scale(0.78);
-  }
-
-  50% {
-    opacity: 0.8;
-    transform: translate3d(10px, -18px, 0) rotate(14deg) scale(1.12);
-    text-shadow: 0 0 15px rgba(210, 11, 69, 0.58), 0 2px 8px rgba(173, 0, 52, 0.3);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .welcome-floating-decoration {
-    animation: none;
-    opacity: 0.5;
-    will-change: auto;
-  }
-}
-
 @media (max-width: 760px) {
   #inicio .welcome-frame {
     gap: 42px;
-  }
-
-  #inicio .welcome-site-header {
-    min-height: 64px;
-    padding-right: 14px;
-    padding-left: 14px;
   }
 
   #inicio .welcome-card {

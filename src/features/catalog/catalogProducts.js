@@ -33,7 +33,7 @@ const productosCatalogoBase = {
     { id: 'set-graduacion-by-l474', nombre: 'Set de graduación decoración BY-L474', precioCOP: 34600, descuentoPorcentaje: 15, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_130937_c730bd8e-5b39-48f2-86b5-5233782ec428.png?v=1785762814&width=1200' },
     { id: 'set-graduacion-by-l468', nombre: 'Set de graduación decoración BY-L468', precioCOP: 34600, descuentoPorcentaje: 15, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_130940_79e4a181-6318-4d66-a2e5-d6eac5887085.png?v=1785762821&width=1200' },
     { id: 'globo-copa-graduacion', nombre: 'Globo metálico copa graduación', precioCOP: 11300, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_125136_e55394d1-1a0a-4315-a297-871791a75317.png?v=1785762350&width=1200' },
-    { id: 'collares-perlas', nombre: '12 collares de perlas en negro y dorado', precioCOP: 9000, image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_131617_fc9291ab-1ef8-4f0f-ae8f-2ef39891cfd4.png?v=1785763140&width=1200' },
+    { id: 'collares-perlas', nombre: '12 collares de perlas en negro y dorado', precioCOP: 9000, eventosSugeridos: ['Boda'], image: 'https://mundofiesta.mx/cdn/shop/files/hf_20260803_131617_fc9291ab-1ef8-4f0f-ae8f-2ef39891cfd4.png?v=1785763140&width=1200' },
   ],
   'hora-loca': [
     { id: 'espantasuegra', nombre: 'Espantasuegra X50', precioCOP: 4000, image: 'https://bombatex.com/cdn/shop/products/14569.jpg?v=1707421439', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a'] },
@@ -46,9 +46,9 @@ const productosCatalogoBase = {
     { id: 'gafas-estrellas', nombre: 'Gafas plásticas de fiesta carnaval estrellas surtidas x6', precioCOP: 3000, image: 'https://bombatex.com/cdn/shop/files/716-36.jpg?v=1721941765', colores: ['#e66da8', '#f5d313', '#65bde0', '#b691bd', '#64750a'] },
   ],
   desechables: [
-    { id: 'platos-biodegradables-redondos', nombre: 'Platos biodegradables redondos varios tamaños x12 pzas', precioCOP: 2800, precioDesde: true, unidadesPorPaquete: 12, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_5.jpg?v=1740251911' },
-    { id: 'platos-biodegradables-cuadrados', nombre: 'Platos eco-biodegradables cuadrados varios tamaños x12 pzas', precioCOP: 3850, precioDesde: true, unidadesPorPaquete: 12, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_4.jpg?v=1740251949' },
-    { id: 'taza-biodegradable', nombre: 'Platos eco-biodegradables taza o cuencos varios tamaños x12 pzas', precioCOP: 3000, precioDesde: true, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_2.jpg?v=1740251982' },
+    { id: 'platos-biodegradables-redondos', nombre: 'Platos biodegradables redondos varios tamaños x12 pzas', precioCOP: 2800, precioDesde: true, tipoDesechable: 'platos', unidadesPorPaquete: 12, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_5.jpg?v=1740251911' },
+    { id: 'platos-biodegradables-cuadrados', nombre: 'Platos eco-biodegradables cuadrados varios tamaños x12 pzas', precioCOP: 3850, precioDesde: true, tipoDesechable: 'platos', unidadesPorPaquete: 12, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_4.jpg?v=1740251949' },
+    { id: 'taza-biodegradable', nombre: 'Platos eco-biodegradables taza o cuencos varios tamaños x12 pzas', precioCOP: 3000, precioDesde: true, tipoDesechable: 'cuencos', image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto_2.jpg?v=1740251982' },
     { id: 'portacomidas-biodegradable', nombre: 'Portacomidas contenedores eco-biodegradables varios tamaños x12 pzas', precioCOP: 6000, precioDesde: true, image: 'https://bombatex.com/cdn/shop/files/Montaje_Eco_Producto.jpg?v=1740252016' },
   ],
 };

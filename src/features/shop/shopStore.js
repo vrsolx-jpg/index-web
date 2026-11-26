@@ -205,10 +205,10 @@ function generarNumeroPedido() {
   return `FC-${tiempo}${azar}`;
 }
 
-/* Crea el pedido con lo que hay en el carrito y lo vacía. Devuelve el pedido. */
-export function placeOrder({ entrega, pago, referencia = '', estado = 'Pago aprobado' }) {
+/* Los pedidos de cotización se guardan sin afectar el carrito de la tienda. */
+export function placeOrder({ entrega, pago, referencia = '', estado = 'Pago aprobado', lineasCotizacion }) {
   const correo = leer(CLAVES.sesion, null);
-  const lineas = leer(CLAVES.carrito, VACIO);
+  const lineas = lineasCotizacion ?? leer(CLAVES.carrito, VACIO);
   if (!correo || lineas.length === 0) return null;
 
   const pedido = {
@@ -224,7 +224,7 @@ export function placeOrder({ entrega, pago, referencia = '', estado = 'Pago apro
   };
 
   escribir(CLAVES.pedidos, [pedido, ...leer(CLAVES.pedidos, VACIO)]);
-  clearCart();
+  if (lineasCotizacion == null) clearCart();
   return pedido;
 }
 

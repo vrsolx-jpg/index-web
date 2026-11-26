@@ -1,0 +1,45 @@
+.welcome-floating-decorations {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.welcome-floating-decoration {
+  position: absolute;
+  display: block;
+  color: #d20b45;
+  font-size: clamp(20px, 2.4vw, 36px);
+  line-height: 1;
+  opacity: 0.62;
+  text-shadow: 0 2px 8px rgba(173, 0, 52, 0.28);
+  animation: welcome-decoration-twinkle var(--decoration-duration) ease-in-out var(--decoration-delay) infinite;
+  will-change: transform, opacity;
+}
+
+.welcome-floating-decoration:nth-child(3n) {
+  color: #b9003a;
+  font-size: clamp(16px, 1.8vw, 28px);
+}
+
+@keyframes welcome-decoration-twinkle {
+  0%, 100% {
+    opacity: 0.28;
+    transform: translate3d(0, 0, 0) rotate(-12deg) scale(0.78);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: translate3d(10px, -18px, 0) rotate(14deg) scale(1.12);
+    text-shadow: 0 0 15px rgba(210, 11, 69, 0.58), 0 2px 8px rgba(173, 0, 52, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-floating-decoration {
+    animation: none;
+    opacity: 0.5;
+    will-change: auto;
+  }
+}

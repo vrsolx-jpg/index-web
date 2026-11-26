@@ -1,0 +1,143 @@
+.about-us-page {
+  min-height: 100svh;
+  background:
+    radial-gradient(ellipse at 12% 18%, rgba(245, 212, 225, 0.32), transparent 28%),
+    #fffafc;
+  color: #382743;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.about-us-main {
+  width: min(100% - 48px, 1240px);
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 46px) 0 34px;
+}
+
+.about-us-banner {
+  display: grid;
+  gap: 7px;
+  min-height: 116px;
+  align-content: center;
+  margin: 0 20px 20px;
+  padding: 22px clamp(22px, 4vw, 42px);
+}
+
+.about-us-banner h1 {
+  margin: 0;
+  color: #bd5a79;
+  font-family: 'Baloo 2', 'DM Sans', sans-serif;
+  font-size: clamp(20px, 2.7vw, 30px);
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.about-us-banner p {
+  margin: 0;
+  color: #4d3560;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.about-us-story {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(28px, 4vw, 46px);
+  padding: 0 10px 24px;
+}
+
+.about-us-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.45 / 1;
+  min-height: 370px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.about-us-copy {
+  align-self: center;
+  padding: 12px 0;
+}
+
+.about-us-eyebrow {
+  margin: 0 0 4px;
+  color: #bd5a79;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.about-us-copy h2 {
+  margin: 0;
+  color: #4d3560;
+  font-family: 'Baloo 2', 'DM Sans', sans-serif;
+  font-size: clamp(28px, 3.2vw, 40px);
+  font-weight: 800;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.about-us-copy h3 {
+  margin: 16px 0 14px;
+  color: #bd5a79;
+  font-family: 'Baloo 2', 'DM Sans', sans-serif;
+  font-size: clamp(18px, 2vw, 23px);
+  line-height: 1.25;
+}
+
+.about-us-copy > p:not(.about-us-eyebrow) {
+  margin: 0 0 12px;
+  color: #6f5c77;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+@media (max-width: 760px) {
+  .about-us-main {
+    width: min(100% - 28px, 620px);
+    padding-top: 24px;
+  }
+
+  .about-us-banner {
+    margin-right: 8px;
+    margin-left: 8px;
+  }
+
+  .about-us-story {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .about-us-image {
+    min-height: 0;
+    aspect-ratio: 1 / 0.78;
+  }
+
+  .about-us-copy {
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .about-us-main {
+    width: min(100% - 24px, 480px);
+  }
+
+  .about-us-banner {
+    min-height: 105px;
+    padding: 18px;
+  }
+
+  .about-us-banner p {
+    font-size: 13px;
+  }
+
+  .about-us-copy > p:not(.about-us-eyebrow) {
+    font-size: 14px;
+  }
+}

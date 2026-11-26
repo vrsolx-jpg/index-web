@@ -5,12 +5,14 @@ import bateImage from '../../assets/bate.png';
 import gorrosImage from '../../assets/gorros.png';
 import lentesImage from '../../assets/lentes.png';
 import pinataImage from '../../assets/piañata.png';
-import fiestaColombiaLogo from '../../assets/fiesta-colombia-logo.png';
 import AboutQuotesPage from '../about/AboutQuotesPage.jsx';
+import AboutUsPage from '../about/AboutUsPage.jsx';
 import Catalog from '../catalog/Catalog.jsx';
 import Chatbot from '../chatbot/Chatbot.jsx';
 import ProfileModal from '../profile/ProfileModal.jsx';
 import ProfilePage from '../profile/ProfilePage.jsx';
+import FloatingDecorations from '../shared/FloatingDecorations.jsx';
+import SiteHeader from '../shared/SiteHeader.jsx';
 import CartDrawer from '../shop/CartDrawer.jsx';
 import CheckoutModal from '../shop/CheckoutModal.jsx';
 import { addToCart, getTotals, useCart, useCurrentUser } from '../shop/shopStore.js';
@@ -26,23 +28,19 @@ const objetosFiesta = [
 
 const SECCIONES_PERFIL = ['cuenta', 'pedidos', 'tarjetas', 'direcciones'];
 
-/* Rutas con hash: #cotizaciones, #perfil, #perfil/pedidos, #perfil/tarjetas, #perfil/direcciones */
+/* Rutas con hash para Nosotros, Cotizaciones y las secciones del perfil. */
 function leerHash() {
   const hash = window.location.hash;
-  if (hash === '#cotizaciones') return { pagina: 'cotizaciones', seccion: 'cuenta' };
+  if (hash === '#nosotros') return { pagina: 'nosotros', seccion: 'cuenta' };
+  if (hash === '#cotizaciones' || hash === '#resumen-cotizacion') {
+    return { pagina: 'cotizaciones', seccion: 'cuenta' };
+  }
   if (hash === '#perfil' || hash.startsWith('#perfil/')) {
     const seccion = hash.split('/')[1];
     return { pagina: 'perfil', seccion: SECCIONES_PERFIL.includes(seccion) ? seccion : 'cuenta' };
   }
   return { pagina: 'inicio', seccion: 'cuenta' };
 }
-
-const decoracionesBienvenida = [
-  { icono: '♡', x: 8, y: 17 }, { icono: '✦', x: 24, y: 75 },
-  { icono: '★', x: 39, y: 14 }, { icono: '♡', x: 57, y: 82 },
-  { icono: '✧', x: 73, y: 23 }, { icono: '♥', x: 91, y: 68 },
-  { icono: '✦', x: 15, y: 48 }, { icono: '★', x: 84, y: 43 },
-];
 
 function HomePage() {
   const [paginaActual, setPaginaActual] = useState(() => leerHash().pagina);
@@ -51,8 +49,7 @@ function HomePage() {
   const [authMode, setAuthMode] = useState(null);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [catalogoAbierto, setCatalogoAbierto] = useState(false);
-  const [pagoAbierto, setPagoAbierto] = useState(false);
-  const [volverAPagar, setVolverAPagar] = useState(false);
+  const [pago, setPago] = useState(null);
   const carrito = useCart();
   const usuario = useCurrentUser();
   const unidadesCarrito = getTotals(carrito).unidades;
@@ -72,6 +69,9 @@ function HomePage() {
       const { pagina, seccion } = leerHash();
       setPaginaActual(pagina);
       setSeccionPerfil(seccion);
+      if (pagina !== 'cotizaciones') {
+        setPago((actual) => actual?.cotizacion ? null : actual);
+      }
     }
 
     window.addEventListener('popstate', sincronizarPagina);
@@ -100,7 +100,7 @@ function HomePage() {
   }, [catalogoCompleto]);
 
   useEffect(() => {
-    if (paginaActual !== 'inicio' || !catalogoFooterRef.current) return undefined;
+    if (!catalogoFooterRef.current) return undefined;
 
     const observador = new IntersectionObserver(([entrada]) => {
       document.documentElement.classList.toggle('catalog-footer-visible', entrada.isIntersecting);
@@ -119,9 +119,8 @@ function HomePage() {
     function cerrarModalConEscape(evento) {
       if (evento.key !== 'Escape') return;
       setAuthMode(null);
-      setVolverAPagar(false);
       setCarritoAbierto(false);
-      setPagoAbierto(false);
+      setPago(null);
     }
 
     window.addEventListener('keydown', cerrarModalConEscape);
@@ -169,31 +168,22 @@ function HomePage() {
       setShareMessage(`${producto.nombre} se agregó al carrito.`);
     }
   
-    function iniciarPago() {
+    function iniciarPago(cotizacion = null) {
       setCarritoAbierto(false);
-  
-      if (!usuario) {
-        setVolverAPagar(true);
-        setAuthMode('login');
-        return;
-      }
-      setPagoAbierto(true);
+      setPago({ cotizacion });
+      if (!usuario) setAuthMode('login');
     }
   
     function alAutenticar(modo) {
       setAuthMode(null);
   
-      if (volverAPagar) {
-        setVolverAPagar(false);
-        setPagoAbierto(true);
-        return;
-      }
+      if (pago) return;
       setShareMessage(modo === 'register' ? '¡Tu cuenta está lista!' : 'Sesión iniciada.');
     }
   
     function seguirExplorando() {
       setCarritoAbierto(false);
-      setPagoAbierto(false);
+      setPago(null);
       setCatalogoAbierto(true);
       if (paginaActual !== 'inicio') irAInicio(true);
     }
@@ -214,13 +204,16 @@ function HomePage() {
     }
 
     function irAPedidos() {
-      setPagoAbierto(false);
+      setPago(null);
       irAPerfil('pedidos');
     }
 
-  function irACotizaciones() {
-    window.history.pushState({ pagina: 'cotizaciones' }, '', '#cotizaciones');
-    setPaginaActual('cotizaciones');
+  function irAPagina(pagina) {
+    const destino = `#${pagina}`;
+    if (window.location.hash !== destino) {
+      window.history.pushState({ pagina }, '', destino);
+    }
+    setPaginaActual(pagina);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -247,17 +240,15 @@ function HomePage() {
     }
   }
 
-  if (paginaActual === 'cotizaciones') return <AboutQuotesPage />;
-
   const capasCompartidas = (
     <>
       {authMode && (
         <ProfileModal
           mode={authMode}
-          notice={volverAPagar ? 'Inicia sesión o crea tu cuenta para pagar.' : ''}
+          notice={pago ? 'Inicia sesión o crea tu cuenta para pagar.' : ''}
           onClose={() => {
             setAuthMode(null);
-            setVolverAPagar(false);
+            setPago(null);
           }}
           onModeChange={setAuthMode}
           onSuccess={alAutenticar}
@@ -267,14 +258,16 @@ function HomePage() {
       {carritoAbierto && (
         <CartDrawer
           onClose={() => setCarritoAbierto(false)}
-          onCheckout={iniciarPago}
+          onCheckout={() => iniciarPago()}
           onExplore={seguirExplorando}
         />
       )}
 
-      {pagoAbierto && (
+      {pago && usuario && !authMode && (
         <CheckoutModal
-          onClose={() => setPagoAbierto(false)}
+          lineasCotizacion={pago.cotizacion?.lineas}
+          onOrderPlaced={pago.cotizacion?.onOrderPlaced}
+          onClose={() => setPago(null)}
           onViewOrders={irAPedidos}
         />
       )}
@@ -286,6 +279,69 @@ function HomePage() {
       )}
     </>
   );
+
+  const headerProps = {
+    cartCount: unidadesCarrito,
+    currentPage: paginaActual,
+    onHome: () => {
+      setCatalogoCompleto(false);
+      irAInicio();
+    },
+    onAbout: () => irAPagina('nosotros'),
+    onQuotes: () => irAPagina('cotizaciones'),
+    onOpenCart: () => setCarritoAbierto(true),
+    onProfile: () => (usuario ? irAPerfil('cuenta') : setAuthMode('login')),
+    onSearch: () => mostrarPendiente('La búsqueda de productos'),
+  };
+
+  const chatbot = (
+    <Chatbot
+      isOpen={chatAbierto}
+      onOpen={() => setChatAbierto(true)}
+      onClose={() => setChatAbierto(false)}
+      onBrowseCatalog={() => {
+        setChatAbierto(false);
+        if (paginaActual !== 'inicio') {
+          irAInicio(true);
+          return;
+        }
+        catalogoRef.current?.scrollIntoView({
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        });
+      }}
+    />
+  );
+
+  if (paginaActual === 'nosotros') {
+    return (
+      <>
+        <AboutUsPage
+          headerProps={headerProps}
+          footerRef={catalogoFooterRef}
+          onShare={compartirPagina}
+          onOpenChat={() => setChatAbierto(true)}
+        />
+        {capasCompartidas}
+        {chatbot}
+      </>
+    );
+  }
+
+  if (paginaActual === 'cotizaciones') {
+    return (
+      <>
+        <AboutQuotesPage
+          headerProps={headerProps}
+          footerRef={catalogoFooterRef}
+          onShare={compartirPagina}
+          onOpenChat={() => setChatAbierto(true)}
+          onCheckout={iniciarPago}
+        />
+        {capasCompartidas}
+        {chatbot}
+      </>
+    );
+  }
 
   if (paginaActual === 'perfil') {
     return (
@@ -315,73 +371,7 @@ function HomePage() {
         id="inicio"
       >
         <div className="welcome-frame">
-          <header className="site-header welcome-site-header">
-            <a
-              href="#inicio"
-              className="brand"
-              onClick={() => setCatalogoCompleto(false)}
-            >
-              <img src={fiestaColombiaLogo} alt="" />
-              <span>FIESTA COLOMBIA</span>
-            </a>
-
-            <div className="header-actions">
-              <nav className="header-quick-nav" aria-label="Enlaces principales">
-                <a href="#nosotros" onClick={(evento) => {
-                  evento.preventDefault();
-                  mostrarPendiente('Nosotros');
-                }}>Nosotros</a>
-                <a href="#cotizaciones" onClick={(evento) => {
-                  evento.preventDefault();
-                  irACotizaciones();
-                }}>Cotizaciones</a>
-                <form
-                  className="header-search"
-                  role="search"
-                  onSubmit={(evento) => {
-                    evento.preventDefault();
-                    mostrarPendiente('La búsqueda de productos');
-                  }}
-                >
-                  <input type="search" placeholder="Buscar productos" aria-label="Buscar productos" />
-                  <button type="submit" aria-label="Buscar">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <circle cx="10.8" cy="10.8" r="6.8" />
-                      <path d="m16 16 5 5" />
-                    </svg>
-                  </button>
-                </form>
-              </nav>
-              <div className="header-shortcut-actions" aria-label="Accesos rápidos">
-                <button
-                  type="button"
-                  className="header-shortcut"
-                  aria-label={`Carrito, ${unidadesCarrito} ${unidadesCarrito === 1 ? 'producto' : 'productos'}`}
-                  onClick={() => setCarritoAbierto(true)}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" />
-                    <circle cx="10" cy="20" r="1" />
-                    <circle cx="18" cy="20" r="1" />
-                  </svg>
-                  {unidadesCarrito > 0 && (
-                  <span className="cart-badge" aria-hidden="true">{unidadesCarrito}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="header-shortcut"
-                  aria-label="Mi perfil"
-                  onClick={() => (usuario ? irAPerfil('cuenta') : setAuthMode('login'))}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </header>
+          <SiteHeader {...headerProps} />
           <div
             className="welcome-card"
             hidden={catalogoCompleto}
@@ -391,22 +381,7 @@ function HomePage() {
               '--scene-text-outline': animacion.colores.textOutline ?? 'transparent',
             }}
           >
-            <div className="welcome-floating-decorations" aria-hidden="true">
-              {decoracionesBienvenida.map((decoration, index) => (
-                <span
-                  className="welcome-floating-decoration"
-                  key={`${decoration.icono}-${decoration.x}`}
-                  style={{
-                    left: `${decoration.x}%`,
-                    top: `${decoration.y}%`,
-                    '--decoration-delay': `${-index * 0.6}s`,
-                    '--decoration-duration': `${4.8 + (index % 4) * 0.7}s`,
-                  }}
-                >
-                  {decoration.icono}
-                </span>
-              ))}
-            </div>
+            <FloatingDecorations />
             <section className="hero-banner" aria-labelledby="welcome-title">
               <div className="hero-decoration" aria-hidden="true">
                 {animacion.fila.map((objeto, posicion) => {
@@ -493,7 +468,7 @@ function HomePage() {
         isExpanded={catalogoCompleto}
         onAddToCart={agregarAlCarrito}
         onShare={compartirPagina}
-        onQuote={irACotizaciones}
+        onQuote={headerProps.onQuotes}
         onOpenChat={() => setChatAbierto(true)}
         onExpand={() => setCatalogoCompleto(true)}
         onCollapse={() => setCatalogoCompleto(false)}
@@ -513,17 +488,7 @@ function HomePage() {
               </button>
             )}
 
-      <Chatbot
-        isOpen={chatAbierto}
-        onOpen={() => setChatAbierto(true)}
-        onClose={() => setChatAbierto(false)}
-        onBrowseCatalog={() => {
-          setChatAbierto(false);
-          catalogoRef.current?.scrollIntoView({
-            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
-          });
-        }}
-      />
+      {chatbot}
     </main>
   );
 }

@@ -17,6 +17,6 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## Cotizaciones
 
-Para habilitar el botón de pago, define `VITE_PAYMENT_URL` en `.env.local` con la URL de la pasarela. La creación y validación de la sesión de pago debe realizarse en un backend antes de usarlo en producción.
+El botón «Ir a pagar» abre la pasarela simulada de la tienda con los productos y el envío de la cotización. El pedido queda en «Mis pedidos» de la cuenta y el carrito de la tienda se conserva.
 
-Las recomendaciones de paquetes usan `unidadesPorPaquete` en los productos del catálogo y calculan los paquetes necesarios por persona (redondeando hacia arriba). El tamaño del lugar se conserva como contexto; no modifica cantidades hasta definir reglas para decoración.
+Las opciones de platos, vasos y cubiertos aparecen en el formulario según el catálogo. Al marcar una opción, se incorpora a la cotización con la cantidad recomendada, calculada a partir de `unidadesPorPaquete` y el número de personas.
