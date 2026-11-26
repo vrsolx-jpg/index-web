@@ -71,7 +71,7 @@
   box-shadow: 0 14px 38px rgba(106, 43, 79, 0.055);
 }
 
-.quotes-content--initial .quotes-request-fields > :is(.quotes-event-form, .quotes-catalog) {
+.quotes-content--initial > :is(.quotes-event-form, .quotes-catalog) {
   align-self: stretch;
 }
 
@@ -565,16 +565,6 @@
 .quotes-checkout:hover {
   transform: translateY(-1px);
   background: #b51e59;
-}
-
-.quotes-checkout--secondary {
-  border: 1px solid var(--quotes-pink);
-  background: #fff;
-  color: var(--quotes-pink);
-}
-
-.quotes-checkout--secondary:hover {
-  background: #fff0f5;
 }
 
 .quotes-payment-note {

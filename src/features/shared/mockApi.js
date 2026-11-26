@@ -50,27 +50,3 @@ export async function guardarUsuario(datos, id) {
 export function eliminarUsuario(id) {
   return request(`usuarios/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
-
-export async function enviarCotizacion(datos) {
-  const payload = {
-    cliente: datos.cliente.trim(),
-    correo: datos.correo.trim().toLowerCase(),
-    telefono: datos.telefono.trim(),
-    tipoevento: datos.tipoevento.trim(),
-    fechaevento: datos.fechaevento,
-    invitados: Number(datos.invitados),
-    detalles: datos.detalles.trim(),
-    estado: 'pendiente',
-  };
-  if (!Number.isSafeInteger(payload.invitados) || payload.invitados < 1) {
-    throw new Error('Indica una cantidad válida de invitados.');
-  }
-  if (payload.cliente.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.correo)
-    || payload.telefono.replace(/\D/g, '').length < 7 || !payload.tipoevento
-    || !/^\d{4}-\d{2}-\d{2}$/.test(payload.fechaevento)) {
-    throw new Error('Revisa el nombre, correo, teléfono y fecha de tu evento.');
-  }
-  const record = await request('cotizaciones', { method: 'POST', body: payload });
-  if (!record?.id) throw new Error('No recibimos el número de solicitud. Contacta a la tienda antes de volver a enviarla.');
-  return record;
-}

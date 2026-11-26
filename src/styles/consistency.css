@@ -71,13 +71,9 @@
 .catalog-search-term { color: var(--fiesta-ink); font-size: 13px; }
 .cart-line-color { display: block; margin: 4px 0; color: var(--fiesta-ink); font-size: 12px; }
 .checkout-summary-name small { font-weight: 500; }
-.checkout-delivery-fields, .quotes-request-fields { display: contents; }
-.quotes-details { margin: 20px 0; }
-.quotes-field .textarea { color: var(--fiesta-ink); background: #fff; border-color: #d9becb; }
-.quotes-confirmation strong { color: inherit; }
+.checkout-delivery-fields { display: contents; }
 .auth-form input::placeholder,
-.quotes-field input::placeholder,
-.quotes-field textarea::placeholder { color: #6b4b59; opacity: 1; }
+.quotes-field input::placeholder { color: #6b4b59; opacity: 1; }
 .auth-form input:disabled { color: var(--fiesta-ink); opacity: 1; -webkit-text-fill-color: var(--fiesta-ink); }
 .shop-primary:disabled, .shop-secondary:disabled { opacity: 1; background: #f3e5eb; border-color: #c9a9b7; color: #694654; }
 
