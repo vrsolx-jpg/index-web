@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import CardVisual from './CardVisual.jsx';
 import QRCode from './QRCode.jsx';
 import { formatCOP } from './format.js';
+import { prepararEntrega } from './deliveryAddress.js';
 import {
   BANCOS,
   CUOTAS,
@@ -27,6 +28,8 @@ import {
 } from './pagos.js';
 import {
   addCard,
+  cargarPerfil,
+  getAddresses,
   getTotals,
   placeOrder,
   saveAddress,
@@ -68,7 +71,7 @@ function Resumen({ lineas, totales }) {
               {linea.image ? <img src={linea.image} alt="" /> : <span aria-hidden="true">✦</span>}
               <small>{linea.cantidad}</small>
             </div>
-            <span className="checkout-summary-name">{linea.nombre}</span>
+            <span className="checkout-summary-name">{linea.nombre}{linea.colorElegido && <small className="cart-line-color">Color: {linea.colorElegido}</small>}</span>
             <strong>{formatCOP(linea.precioCOP * linea.cantidad)}</strong>
           </li>
         ))}
@@ -82,7 +85,8 @@ function Resumen({ lineas, totales }) {
   );
 }
 
-function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders }) {
+function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders, onExplore }) {
+  const dialogRef = useRef(null);
   const usuario = useCurrentUser();
   const carrito = useCart();
   const direcciones = useAddresses();
@@ -91,18 +95,15 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
   const [paso, setPaso] = useState(1);
   const [fase, setFase] = useState('formulario');
 
-  const [direccionId, setDireccionId] = useState(() => (
-    (direcciones.find((direccion) => direccion.predeterminada) ?? direcciones[0])?.id ?? 'nueva'
-  ));
-  const [entrega, setEntrega] = useState(() => ({
-    nombre: usuario?.name ?? '',
-    telefono: usuario?.phone ?? '',
-    ciudad: usuario?.city ?? '',
-    direccion: usuario?.address ?? '',
-    notas: '',
-  }));
+  const direccionInicial = direcciones.find((direccion) => direccion.predeterminada) ?? direcciones[0];
+  const [direccionId, setDireccionId] = useState(() => direccionInicial?.id ?? 'nueva');
+  const [entrega, setEntrega] = useState(() => prepararEntrega(direccionInicial, usuario).campos);
   const [guardarDireccion, setGuardarDireccion] = useState(true);
-  const [aliasDireccion, setAliasDireccion] = useState('Casa');
+  const [perfilCargando, setPerfilCargando] = useState(true);
+  const [guardandoDireccion, setGuardandoDireccion] = useState(false);
+  const [avisoDireccion, setAvisoDireccion] = useState('');
+  const [errorDireccion, setErrorDireccion] = useState('');
+  const [aliasDireccion, setAliasDireccion] = useState(() => prepararEntrega(direccionInicial, usuario).etiqueta);
 
   const [metodo, setMetodo] = useState('tarjeta');
   const [tarjetaId, setTarjetaId] = useState(() => (
@@ -130,6 +131,39 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
   const temporizadores = useRef([]);
 
   useEffect(() => {
+    const anterior = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = anterior; };
+  }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      // Evita conservar el foco en un botón situado al final del paso anterior.
+      dialogRef.current?.querySelector('.checkout-steps')?.focus({ preventScroll: true });
+      dialogRef.current?.scrollTo({
+        top: 0,
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [paso, fase, perfilCargando]);
+
+  useEffect(() => {
+    let activa = true;
+    cargarPerfil().then((perfil) => {
+      if (!activa) return;
+      const guardadas = getAddresses();
+      const principal = guardadas.find((item) => item.predeterminada) ?? guardadas[0];
+      const formulario = prepararEntrega(principal, perfil);
+      setDireccionId(principal?.id ?? 'nueva');
+      setEntrega(formulario.campos);
+      setAliasDireccion(formulario.etiqueta);
+    }).catch((error) => { if (activa) setErrorDireccion(error.message); })
+      .finally(() => { if (activa) setPerfilCargando(false); });
+    return () => { activa = false; };
+  }, []);
+
+  useEffect(() => {
     const lista = temporizadores.current;
     return () => lista.forEach((id) => window.clearTimeout(id));
   }, []);
@@ -142,15 +176,7 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
 
   const direccionGuardada = direcciones.find((direccion) => direccion.id === direccionId) ?? null;
   const usandoDireccionNueva = !direccionGuardada;
-  const entregaActual = direccionGuardada
-    ? {
-      nombre: direccionGuardada.nombre,
-      telefono: direccionGuardada.telefono,
-      ciudad: direccionGuardada.ciudad,
-      direccion: direccionGuardada.direccion,
-      notas: direccionGuardada.indicaciones,
-    }
-    : entrega;
+  const entregaActual = entrega;
 
   const tarjetaGuardada = tarjetasGuardadas.find((item) => item.id === tarjetaId) ?? null;
   const marcaNueva = detectarMarca(tarjeta.numero);
@@ -166,6 +192,15 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
     return (evento) => setEntrega((actual) => ({ ...actual, [campo]: evento.target.value }));
   }
 
+  function elegirDireccion(direccion) {
+    const formulario = prepararEntrega(direccion, direccion ? usuario : undefined);
+    setDireccionId(direccion?.id ?? 'nueva');
+    setEntrega(formulario.campos);
+    setAliasDireccion(formulario.etiqueta);
+    setAvisoDireccion('');
+    setErrorDireccion('');
+  }
+
   function cambiarTarjeta(campo, formatear = (valor) => valor) {
     return (evento) => {
       setTarjeta((actual) => ({ ...actual, [campo]: formatear(evento.target.value) }));
@@ -179,9 +214,26 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
     setError('');
   }
 
-  function continuarAPago(evento) {
+  async function continuarAPago(evento) {
     evento.preventDefault();
-    setError('');
+    if (guardandoDireccion || perfilCargando) return;
+    setError(''); setErrorDireccion(''); setAvisoDireccion('');
+    const original = prepararEntrega(direccionGuardada, usuario);
+    const direccionModificada = usandoDireccionNueva || aliasDireccion !== original.etiqueta
+      || Object.keys(entrega).some((campo) => entrega[campo] !== original.campos[campo]);
+    if (guardarDireccion && direccionModificada) {
+      setGuardandoDireccion(true);
+      try {
+        const direccion = await saveAddress({
+          id: direccionGuardada?.id,
+          alias: aliasDireccion, nombre: entregaActual.nombre, telefono: entregaActual.telefono,
+          ciudad: entregaActual.ciudad, direccion: entregaActual.direccion, indicaciones: entregaActual.notas,
+        });
+        setDireccionId(direccion.id);
+        setAvisoDireccion('La dirección se guardó correctamente en tu perfil.');
+      } catch (error) { setErrorDireccion(error.message); return; }
+      finally { setGuardandoDireccion(false); }
+    }
     setPaso(2);
   }
 
@@ -228,17 +280,6 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
       setError('No pudimos crear el pedido. Verifica tu sesión y los productos seleccionados.');
       setFase('formulario');
       return;
-    }
-
-    if (usandoDireccionNueva && guardarDireccion) {
-      saveAddress({
-        alias: aliasDireccion,
-        nombre: entregaActual.nombre,
-        telefono: entregaActual.telefono,
-        ciudad: entregaActual.ciudad,
-        direccion: entregaActual.direccion,
-        indicaciones: entregaActual.notas,
-      });
     }
 
     if (metodo === 'tarjeta' && !tarjetaGuardada && guardarTarjeta) {
@@ -407,7 +448,7 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
             <button type="button" className="shop-primary" onClick={onViewOrders}>
               Ver mis pedidos
             </button>
-            <button type="button" className="shop-secondary" onClick={onClose}>
+            <button type="button" className="shop-secondary" onClick={onExplore}>
               Seguir comprando
             </button>
           </div>
@@ -420,7 +461,7 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
         <div className="checkout-status">
           <h2>Tu carrito está vacío</h2>
           <p>Agrega productos antes de pasar al pago.</p>
-          <button type="button" className="shop-primary" onClick={onClose}>Volver a la tienda</button>
+          <button type="button" className="shop-primary" onClick={onExplore}>Volver a la tienda</button>
         </div>
       );
     }
@@ -478,8 +519,10 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
     }
 
     if (paso === 1) {
+      if (perfilCargando) return <p role="status">Cargando tus direcciones…</p>;
       return (
-        <form className="auth-form" onSubmit={continuarAPago}>
+        <form className="auth-form" onSubmit={continuarAPago} aria-busy={guardandoDireccion}>
+          <fieldset className="checkout-delivery-fields" disabled={guardandoDireccion}>
           <h2>¿A dónde enviamos tu pedido?</h2>
 
           {direcciones.length > 0 && (
@@ -491,7 +534,7 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
                   aria-checked={direccionId === direccion.id}
                   className={`saved-option${direccionId === direccion.id ? ' is-selected' : ''}`}
                   key={direccion.id}
-                  onClick={() => setDireccionId(direccion.id)}
+                  onClick={() => elegirDireccion(direccion)}
                 >
                   <strong>
                     {direccion.alias || 'Dirección'}
@@ -506,60 +549,61 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
                 role="radio"
                 aria-checked={usandoDireccionNueva}
                 className={`saved-option is-new${usandoDireccionNueva ? ' is-selected' : ''}`}
-                onClick={() => setDireccionId('nueva')}
+                onClick={() => elegirDireccion(null)}
               >
                 <strong>+ Usar otra dirección</strong>
               </button>
             </div>
           )}
 
-          {usandoDireccionNueva && (
-            <>
-              <div className="checkout-row">
-                <label>
-                  Nombre completo
-                  <input type="text" autoComplete="name" value={entrega.nombre} onChange={cambiarEntrega('nombre')} required />
-                </label>
-                <label>
-                  Teléfono
-                  <input type="tel" autoComplete="tel" inputMode="tel" value={entrega.telefono} onChange={cambiarEntrega('telefono')} required />
-                </label>
-              </div>
-              <div className="checkout-row">
-                <label>
-                  Ciudad
-                  <input type="text" autoComplete="address-level2" value={entrega.ciudad} onChange={cambiarEntrega('ciudad')} required />
-                </label>
-                <label>
-                  Dirección
-                  <input type="text" autoComplete="street-address" placeholder="Calle, número, barrio" value={entrega.direccion} onChange={cambiarEntrega('direccion')} required />
-                </label>
-              </div>
-              <label>
-                Indicaciones para la entrega (opcional)
-                <input type="text" placeholder="Torre, apartamento, punto de referencia…" value={entrega.notas} onChange={cambiarEntrega('notas')} />
-              </label>
-              <label className="auth-terms">
-                <input type="checkbox" checked={guardarDireccion} onChange={(evento) => setGuardarDireccion(evento.target.checked)} />
-                <span>Guardar esta dirección en mi perfil.</span>
-              </label>
-              {guardarDireccion && (
-                <label>
-                  Nombre de la dirección
-                  <select value={aliasDireccion} onChange={(evento) => setAliasDireccion(evento.target.value)}>
-                    <option value="Casa">Casa</option>
-                    <option value="Trabajo">Trabajo</option>
-                    <option value="Otra">Otra</option>
-                  </select>
-                </label>
-              )}
-            </>
+          <div className="checkout-row">
+            <label>
+              Nombre completo
+              <input type="text" autoComplete="name" value={entrega.nombre} onChange={cambiarEntrega('nombre')} required />
+            </label>
+            <label>
+              Teléfono
+              <input type="tel" autoComplete="tel" inputMode="tel" value={entrega.telefono} onChange={cambiarEntrega('telefono')} required />
+            </label>
+          </div>
+          <div className="checkout-row">
+            <label>
+              Ciudad
+              <input type="text" autoComplete="address-level2" value={entrega.ciudad} onChange={cambiarEntrega('ciudad')} required />
+            </label>
+            <label>
+              Dirección
+              <input type="text" autoComplete="street-address" placeholder="Calle, número, barrio" value={entrega.direccion} onChange={cambiarEntrega('direccion')} required />
+            </label>
+          </div>
+          <label>
+            Indicaciones para la entrega (opcional)
+            <input type="text" placeholder="Torre, apartamento, punto de referencia…" value={entrega.notas} onChange={cambiarEntrega('notas')} />
+          </label>
+          <label className="auth-terms">
+            <input type="checkbox" checked={guardarDireccion} onChange={(evento) => setGuardarDireccion(evento.target.checked)} />
+            <span>Guardar esta dirección en mi perfil.</span>
+          </label>
+          {guardarDireccion && (
+            <label>
+              Nombre de la dirección
+              <select value={aliasDireccion} onChange={(evento) => setAliasDireccion(evento.target.value)}>
+                {!['Casa', 'Oficina', 'Trabajo', 'Otra'].includes(aliasDireccion) && (
+                  <option value={aliasDireccion}>{aliasDireccion}</option>
+                )}
+                <option value="Casa">Casa</option>
+                <option value="Oficina">Oficina</option>
+                <option value="Trabajo">Trabajo</option>
+                <option value="Otra">Otra</option>
+              </select>
+            </label>
           )}
 
           <div className="checkout-actions">
             <button type="button" className="shop-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="shop-primary">Continuar al pago</button>
+            <button type="submit" className="shop-primary" disabled={guardandoDireccion}>{guardandoDireccion ? 'Guardando dirección…' : 'Continuar al pago'}</button>
           </div>
+          </fieldset>
         </form>
       );
     }
@@ -807,13 +851,13 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
   }
 
   return (
-    <div className="auth-overlay">
-      <section className="checkout-dialog" role="dialog" aria-modal="true" aria-label="Pasarela de pago">
+    <div className="auth-overlay checkout-overlay">
+      <section className="checkout-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-label="Pasarela de pago">
         {fase !== 'procesando' && (
           <button type="button" className="auth-close" aria-label="Cerrar" onClick={onClose}>×</button>
         )}
         <div className="checkout-main">
-          <ol className="checkout-steps" aria-label="Progreso del pago">
+        <ol className="checkout-steps" aria-label="Progreso del pago" tabIndex={-1}>
             {PASOS.map((nombre, indice) => (
               <li
                 key={nombre}
@@ -825,6 +869,8 @@ function CheckoutModal({ lineasCotizacion, onClose, onOrderPlaced, onViewOrders 
               </li>
             ))}
           </ol>
+          {avisoDireccion && <p className="notification is-success is-light" role="status">{avisoDireccion}</p>}
+          {errorDireccion && <p className="notification is-danger is-light" role="alert">{errorDireccion} Puedes reintentar al continuar.</p>}
           {contenido()}
         </div>
         {lineas.length > 0 && <Resumen lineas={lineas} totales={totales} />}

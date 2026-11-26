@@ -51,7 +51,7 @@
   position: absolute;
   z-index: 1;
   inset: 0;
-  background: linear-gradient(180deg, rgba(61, 0, 22, 0.02) 35%, rgba(52, 0, 19, 0.82));
+  background: linear-gradient(180deg, rgba(28, 12, 18, 0.16) 30%, rgba(28, 12, 18, 0.88));
   content: '';
 }
 
@@ -74,6 +74,7 @@
 }
 
 .auth-art-copy strong {
+  color: #ffffff;
   max-width: 290px;
   font-family: 'Baloo 2', 'DM Sans', sans-serif;
   font-size: clamp(30px, 4vw, 46px);
@@ -126,7 +127,7 @@
 
 .auth-welcome {
   margin: 8px 0 20px;
-  color: #82616d;
+  color: #4a3540;
   font-size: 14px;
 }
 
@@ -215,7 +216,7 @@
 }
 
 .auth-form input:not([type="checkbox"])::placeholder {
-  color: #968a8e;
+  color: #4a3540;
 }
 
 .auth-form input:not([type="checkbox"]):focus {
@@ -278,7 +279,7 @@
   justify-content: center;
   gap: 5px;
   margin: 18px 0 0;
-  color: #82616d;
+  color: #4a3540;
   font-size: 12px;
 }
 

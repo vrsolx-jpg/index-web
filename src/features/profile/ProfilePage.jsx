@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import CardVisual from '../shop/CardVisual.jsx';
-import fiestaColombiaLogo from '../../assets/fiesta-colombia-logo.png';
+import FloatingDecorations from '../shared/FloatingDecorations.jsx';
 import { formatCOP, formatFecha } from '../shop/format.js';
 import {
   MARCAS,
@@ -21,7 +21,10 @@ import {
   saveAddress,
   setDefaultAddress,
   setDefaultCard,
-  updateUser,
+  guardarPerfil,
+  cargarPerfil,
+  marcarSeccionLeida,
+  useProfileRead,
   useAddresses,
   useCards,
   useCurrentUser,
@@ -75,6 +78,8 @@ function SeccionCuenta({ usuario, cantidades, onSeccion }) {
     documentNumber: usuario.documentNumber ?? '',
   }));
   const [estado, setEstado] = useState('');
+  const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
   const hayCambios = form.name.trim() !== usuario.name
     || form.phone.trim() !== (usuario.phone ?? '')
@@ -85,13 +90,22 @@ function SeccionCuenta({ usuario, cantidades, onSeccion }) {
     return (evento) => {
       setForm((actual) => ({ ...actual, [campo]: evento.target.value }));
       setEstado('');
+      setError('');
     };
   }
 
-  function guardar(evento) {
+  async function guardar(evento) {
     evento.preventDefault();
-    updateUser(form);
-    setEstado('Cambios guardados.');
+    if (guardando) return;
+    if (form.name.trim().length < 2) { setError('Escribe tu nombre completo.'); return; }
+    setGuardando(true);
+    setError('');
+    setEstado('');
+    try {
+      await guardarPerfil(form);
+      setEstado('Tu información se guardó correctamente.');
+    } catch (error) { setError(error.message); }
+    finally { setGuardando(false); }
   }
 
   return (
@@ -145,7 +159,8 @@ function SeccionCuenta({ usuario, cantidades, onSeccion }) {
         <p className="profile-hint">Usamos estos datos para completar tus pedidos y pagos más rápido.</p>
         <div className="pf-form-actions">
           {estado && <p className="profile-saved" role="status">{estado}</p>}
-          <button type="submit" className="shop-primary" disabled={!hayCambios}>Guardar cambios</button>
+          {error && <p className="checkout-error" role="alert">{error}</p>}
+          <button type="submit" className="shop-primary" disabled={!hayCambios || guardando}>{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
         </div>
       </form>
     </>
@@ -186,7 +201,7 @@ function SeccionPedidos({ pedidos, onExplore }) {
                           <div className="cart-thumb">
                             {linea.image ? <img src={linea.image} alt="" /> : <span aria-hidden="true">✦</span>}
                           </div>
-                          <span>{linea.cantidad} × {linea.nombre}</span>
+                          <span>{linea.cantidad} × {linea.nombre}{linea.colorElegido && <small className="cart-line-color">Color: {linea.colorElegido}</small>}</span>
                           <strong>{formatCOP(linea.precioCOP * linea.cantidad)}</strong>
                         </li>
                       ))}
@@ -368,8 +383,13 @@ function SeccionDirecciones({ usuario }) {
   const [editando, setEditando] = useState(null); // null | 'nueva' | id
   const [confirmarId, setConfirmarId] = useState(null);
   const [form, setForm] = useState(DIRECCION_VACIA);
+  const [guardando, setGuardando] = useState(false);
+  const [estado, setEstado] = useState('');
+  const [error, setError] = useState('');
 
   function abrirNueva() {
+    setError('');
+    setEstado('');
     setForm({
       ...DIRECCION_VACIA,
       nombre: usuario.name,
@@ -380,6 +400,8 @@ function SeccionDirecciones({ usuario }) {
   }
 
   function abrirEdicion(direccion) {
+    setError('');
+    setEstado('');
     setForm({
       alias: direccion.alias || 'Otra',
       nombre: direccion.nombre,
@@ -396,10 +418,26 @@ function SeccionDirecciones({ usuario }) {
     return (evento) => setForm((actual) => ({ ...actual, [campo]: evento.target.value }));
   }
 
-  function guardar(evento) {
+  async function guardar(evento) {
     evento.preventDefault();
-    saveAddress({ ...form, id: editando === 'nueva' ? undefined : editando });
-    setEditando(null);
+    if (guardando) return;
+    setGuardando(true); setError(''); setEstado('');
+    try {
+      await saveAddress({ ...form, id: editando === 'nueva' ? undefined : editando });
+      setEditando(null);
+      setEstado('Dirección guardada correctamente. Ya puedes usarla al pagar.');
+    } catch (error) { setError(error.message); }
+    finally { setGuardando(false); }
+  }
+
+  async function eliminar(id) {
+    setGuardando(true); setError(''); setEstado('');
+    try {
+      await removeAddress(id);
+      setConfirmarId(null);
+      setEstado('Dirección eliminada.');
+    } catch (error) { setError(error.message); }
+    finally { setGuardando(false); }
   }
 
   return (
@@ -412,6 +450,8 @@ function SeccionDirecciones({ usuario }) {
         )}
       />
 
+      {estado && <p className="notification is-success is-light" role="status">{estado}</p>}
+      {error && <p className="notification is-danger is-light" role="alert">{error}</p>}
       {editando && (
         <form className="auth-form pf-address-form" onSubmit={guardar}>
           <h3>{editando === 'nueva' ? 'Nueva dirección' : 'Editar dirección'}</h3>
@@ -420,6 +460,7 @@ function SeccionDirecciones({ usuario }) {
               Nombre de la dirección
               <select value={form.alias} onChange={cambiar('alias')}>
                 <option value="Casa">Casa</option>
+                <option value="Oficina">Oficina</option>
                 <option value="Trabajo">Trabajo</option>
                 <option value="Otra">Otra</option>
               </select>
@@ -456,8 +497,8 @@ function SeccionDirecciones({ usuario }) {
             <span>Usar como dirección predeterminada.</span>
           </label>
           <div className="pf-form-actions">
-            <button type="button" className="shop-secondary" onClick={() => setEditando(null)}>Cancelar</button>
-            <button type="submit" className="shop-primary">Guardar dirección</button>
+            <button type="button" className="shop-secondary" onClick={() => setEditando(null)} disabled={guardando}>Cancelar</button>
+            <button type="submit" className="shop-primary" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar dirección'}</button>
           </div>
         </form>
       )}
@@ -486,7 +527,7 @@ function SeccionDirecciones({ usuario }) {
               {confirmarId === direccion.id ? (
                 <span className="pf-confirm">
                   ¿Eliminar?
-                  <button type="button" className="shop-link is-danger" onClick={() => { removeAddress(direccion.id); setConfirmarId(null); }}>Sí, eliminar</button>
+                  <button type="button" className="shop-link is-danger" disabled={guardando} onClick={() => eliminar(direccion.id)}>Sí, eliminar</button>
                   <button type="button" className="shop-link" onClick={() => setConfirmarId(null)}>No</button>
                 </span>
               ) : (
@@ -504,11 +545,9 @@ function SeccionDirecciones({ usuario }) {
 
 function ProfilePage({
   seccion = 'cuenta',
-  cartCount = 0,
+  header,
   onSeccion,
-  onHome,
   onExplore,
-  onOpenCart,
   onLogin,
   onLogout,
 }) {
@@ -516,6 +555,8 @@ function ProfilePage({
   const pedidos = useOrders();
   const tarjetas = useCards();
   const direcciones = useAddresses();
+  const leidas = useProfileRead();
+  const [sync, setSync] = useState({ loading: true, error: '' });
 
   const cantidades = { pedidos: pedidos.length, tarjetas: tarjetas.length, direcciones: direcciones.length };
   const seccionActual = SECCIONES.some((item) => item.id === seccion) ? seccion : 'cuenta';
@@ -525,35 +566,34 @@ function ProfilePage({
     onLogout();
   }
 
-  const barra = (
-    <header className="pf-topbar">
-      <a href="#inicio" className="pf-brand" onClick={(evento) => { evento.preventDefault(); onHome(); }}>
-        <img src={fiestaColombiaLogo} alt="" />
-        <span>FIESTA COLOMBIA</span>
-      </a>
-      <div className="pf-topbar-actions">
-        <button type="button" className="pf-link" onClick={onExplore}>Seguir comprando</button>
-        <button
-          type="button"
-          className="pf-cart"
-          aria-label={`Carrito, ${cartCount} ${cartCount === 1 ? 'producto' : 'productos'}`}
-          onClick={onOpenCart}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" />
-            <circle cx="10" cy="20" r="1" />
-            <circle cx="18" cy="20" r="1" />
-          </svg>
-          {cartCount > 0 && <span className="cart-badge" aria-hidden="true">{cartCount}</span>}
-        </button>
-      </div>
-    </header>
-  );
+  useEffect(() => {
+    let activa = true;
+    cargarPerfil({ force: true })
+      .then(() => { if (activa) setSync({ loading: false, error: '' }); })
+      .catch((error) => { if (activa) setSync({ loading: false, error: error.message }); });
+    return () => { activa = false; };
+  }, [usuario?.email]);
+
+  useEffect(() => {
+    const listas = { pedidos, tarjetas, direcciones };
+    if (listas[seccionActual]) marcarSeccionLeida(seccionActual, listas[seccionActual].map((item) => item.id));
+  }, [seccionActual, pedidos, tarjetas, direcciones]);
+
+  async function reintentar() {
+    setSync({ loading: true, error: '' });
+    try { await cargarPerfil({ force: true }); setSync({ loading: false, error: '' }); }
+    catch (error) { setSync({ loading: false, error: error.message }); }
+  }
+
+  const novedades = Object.fromEntries(Object.entries({ pedidos, tarjetas, direcciones }).map(([tipo, lista]) => [
+    tipo, lista.filter((item) => !(leidas[tipo] ?? []).includes(item.id)).length,
+  ]));
 
   if (!usuario) {
     return (
       <div className="profile-page">
-        {barra}
+        {header}
+        <FloatingDecorations />
         <main className="pf-gate">
           <h1>Mi perfil</h1>
           <p>Inicia sesión para ver tus datos, tus pedidos, tus tarjetas y tus direcciones.</p>
@@ -565,7 +605,8 @@ function ProfilePage({
 
   return (
     <div className="profile-page">
-      {barra}
+      {header}
+        <FloatingDecorations />
       <main className="pf-main">
         <header className="pf-hero">
           <span className="profile-avatar" aria-hidden="true">{usuario.name.charAt(0).toUpperCase()}</span>
@@ -575,6 +616,7 @@ function ProfilePage({
           </div>
         </header>
 
+        <button type="button" className="shop-link pf-explore" onClick={onExplore}>Seguir comprando →</button>
         <div className="pf-layout">
           <nav className="pf-nav" aria-label="Secciones del perfil">
             {SECCIONES.map((item) => (
@@ -587,19 +629,21 @@ function ProfilePage({
               >
                 <Icono nombre={item.id} />
                 {item.nombre}
-                {cantidades[item.id] > 0 && <span className="profile-tab-count">{cantidades[item.id]}</span>}
+                {novedades[item.id] > 0 && <span className="profile-tab-count" aria-label={`${novedades[item.id]} novedades`}>{novedades[item.id]}</span>}
               </button>
             ))}
             <button type="button" className="pf-logout" onClick={cerrarSesion}>Cerrar sesión</button>
           </nav>
 
-          <section className="pf-panel" aria-live="polite">
-            {seccionActual === 'cuenta' && (
-              <SeccionCuenta usuario={usuario} cantidades={cantidades} onSeccion={onSeccion} />
+          <section className="pf-panel" aria-live="polite" aria-busy={sync.loading}>
+            {sync.loading && <p role="status">Cargando tu perfil…</p>}
+            {sync.error && <div className="notification is-danger is-light" role="alert">{sync.error} <button type="button" className="shop-link" onClick={reintentar}>Reintentar</button></div>}
+            {!sync.loading && seccionActual === 'cuenta' && (
+              <SeccionCuenta key={usuario.email} usuario={usuario} cantidades={cantidades} onSeccion={onSeccion} />
             )}
-            {seccionActual === 'pedidos' && <SeccionPedidos pedidos={pedidos} onExplore={onExplore} />}
-            {seccionActual === 'tarjetas' && <SeccionTarjetas />}
-            {seccionActual === 'direcciones' && <SeccionDirecciones usuario={usuario} />}
+            {!sync.loading && seccionActual === 'pedidos' && <SeccionPedidos pedidos={pedidos} onExplore={onExplore} />}
+            {!sync.loading && seccionActual === 'tarjetas' && <SeccionTarjetas />}
+            {!sync.loading && seccionActual === 'direcciones' && <SeccionDirecciones usuario={usuario} />}
           </section>
         </div>
       </main>

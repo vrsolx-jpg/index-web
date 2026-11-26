@@ -71,7 +71,7 @@
   box-shadow: 0 14px 38px rgba(106, 43, 79, 0.055);
 }
 
-.quotes-content--initial > :is(.quotes-event-form, .quotes-catalog) {
+.quotes-content--initial .quotes-request-fields > :is(.quotes-event-form, .quotes-catalog) {
   align-self: stretch;
 }
 
@@ -102,7 +102,7 @@
   height: 38px;
   border-radius: 12px;
   background: #fff0f5;
-  color: #bd5a79;
+  color: #4a3540;
   font-size: 12px;
   font-weight: 800;
 }
@@ -118,7 +118,7 @@
 
 .quotes-section-heading p {
   margin: 4px 0 0;
-  color: #947b84;
+  color: #4a3540;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -153,7 +153,7 @@
 }
 
 .quotes-field input::placeholder {
-  color: #aa959d;
+  color: #4a3540;
 }
 
 .quotes-field .select {
@@ -243,7 +243,7 @@
 
 .quotes-unavailable {
   margin: 0;
-  color: #947b84;
+  color: #4a3540;
   font-size: 11px;
   line-height: 1.5;
 }
@@ -267,14 +267,14 @@
 }
 
 .quotes-search input::placeholder {
-  color: #aa959d;
+  color: #4a3540;
 }
 
 .quotes-search > span:last-child {
   position: absolute;
   top: 50%;
   right: 15px;
-  color: #bd5a79;
+  color: #4a3540;
   font-size: 22px;
   transform: translateY(-55%);
   pointer-events: none;
@@ -316,7 +316,7 @@
 
 .quotes-result-count {
   margin: 14px 0 9px;
-  color: #947b84;
+  color: #4a3540;
   font-size: 11px;
 }
 
@@ -342,7 +342,7 @@
   place-items: center;
   overflow: hidden;
   background: #faf6f8;
-  color: #bd5a79;
+  color: #4a3540;
 }
 
 .quotes-product-image img {
@@ -365,7 +365,7 @@
 }
 
 .quotes-product-category {
-  color: #bd5a79;
+  color: #4a3540;
   font-size: 9px;
   font-weight: 700;
 }
@@ -475,7 +475,7 @@
 }
 
 .quotes-summary-product span {
-  color: #947b84;
+  color: #4a3540;
   font-size: 10px;
 }
 
@@ -495,7 +495,7 @@
   border: 1px solid #eadce2;
   border-radius: 50%;
   background: #fff;
-  color: #bd5a79;
+  color: #4a3540;
 }
 
 .quotes-line-total {
@@ -508,7 +508,7 @@
   padding: 6px 8px;
   border: 0;
   background: transparent;
-  color: #bd5a79;
+  color: #4a3540;
   font-size: 10px;
   font-weight: 700;
 }
@@ -567,9 +567,19 @@
   background: #b51e59;
 }
 
+.quotes-checkout--secondary {
+  border: 1px solid var(--quotes-pink);
+  background: #fff;
+  color: var(--quotes-pink);
+}
+
+.quotes-checkout--secondary:hover {
+  background: #fff0f5;
+}
+
 .quotes-payment-note {
   margin: 9px 0 0;
-  color: #9f8991;
+  color: #4a3540;
   font-size: 10px;
   text-align: center;
 }

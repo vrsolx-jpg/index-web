@@ -13,6 +13,7 @@ import ProfileModal from '../profile/ProfileModal.jsx';
 import ProfilePage from '../profile/ProfilePage.jsx';
 import FloatingDecorations from '../shared/FloatingDecorations.jsx';
 import SiteHeader from '../shared/SiteHeader.jsx';
+import { entrance, gsap, motionQuery } from '../shared/motion.js';
 import CartDrawer from '../shop/CartDrawer.jsx';
 import CheckoutModal from '../shop/CheckoutModal.jsx';
 import { addToCart, getTotals, useCart, useCurrentUser } from '../shop/shopStore.js';
@@ -39,7 +40,7 @@ function leerHash() {
     const seccion = hash.split('/')[1];
     return { pagina: 'perfil', seccion: SECCIONES_PERFIL.includes(seccion) ? seccion : 'cuenta' };
   }
-  return { pagina: 'inicio', seccion: 'cuenta' };
+  return { pagina: 'inicio', seccion: 'cuenta', catalogo: hash === '#catalogo' };
 }
 
 function HomePage() {
@@ -54,8 +55,12 @@ function HomePage() {
   const usuario = useCurrentUser();
   const unidadesCarrito = getTotals(carrito).unidades;
   const [shareMessage, setShareMessage] = useState('');
-  const [catalogoCompleto, setCatalogoCompleto] = useState(false);
+  const [catalogoCompleto, setCatalogoCompleto] = useState(() => Boolean(leerHash().catalogo));
+  const [busquedaCatalogo, setBusquedaCatalogo] = useState('');
+  const [textoBusqueda, setTextoBusqueda] = useState('');
+  const [catalogoVersion, setCatalogoVersion] = useState(0);
   const catalogoRef = useRef(null);
+  const homeRef = useRef(null);
   const catalogoFooterRef = useRef(null);
   const scrollAProductos = useRef(false);
   const [animacion, setAnimacion] = useState({
@@ -65,8 +70,28 @@ function HomePage() {
   });
 
   useEffect(() => {
+    if (paginaActual !== 'inicio' || catalogoCompleto || !homeRef.current) return;
+    const media = gsap.matchMedia();
+    const context = gsap.context(() => {
+      media.add(motionQuery, () => {
+        gsap.fromTo('.hero-eyebrow, .hero-copy h1, .hero-caption, .hero-actions',
+          { autoAlpha: 0, y: 22 },
+          { ...entrance, autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.1 });
+        gsap.fromTo('.catalog-categories button',
+          { autoAlpha: 0, y: 18 },
+          {
+            ...entrance, autoAlpha: 1, y: 0, stagger: 0.08,
+            scrollTrigger: { trigger: '.catalog-categories', start: 'top 90%', once: true },
+          });
+      }, homeRef);
+    }, homeRef);
+    return () => { media.revert(); context.revert(); };
+  }, [paginaActual, catalogoCompleto, catalogoVersion]);
+
+  useEffect(() => {
     function sincronizarPagina() {
-      const { pagina, seccion } = leerHash();
+      const { pagina, seccion, catalogo } = leerHash();
+      setCatalogoCompleto(Boolean(catalogo));
       setPaginaActual(pagina);
       setSeccionPerfil(seccion);
       if (pagina !== 'cotizaciones') {
@@ -88,7 +113,7 @@ function HomePage() {
     catalogoRef.current?.scrollIntoView({
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
     });
-  }, [paginaActual]);
+  }, [paginaActual, catalogoCompleto]);
 
   useEffect(() => {
     if (!catalogoCompleto) return;
@@ -113,7 +138,7 @@ function HomePage() {
       document.documentElement.classList.remove('catalog-footer-visible');
       document.body.classList.remove('catalog-footer-visible');
     };
-  }, [paginaActual]);
+  }, [paginaActual, catalogoVersion]);
 
   useEffect(() => {
     function cerrarModalConEscape(evento) {
@@ -159,54 +184,63 @@ function HomePage() {
     return () => window.clearTimeout(timeout);
   }, [shareMessage]);
 
-  function mostrarPendiente(seccion) {
-    setShareMessage(`${seccion} estará disponible próximamente.`);
+  function agregarAlCarrito(producto, cantidad = 1) {
+    addToCart(producto, cantidad);
+    setShareMessage(`${cantidad} × ${producto.nombre}${producto.colorElegido ? ` (${producto.colorElegido})` : ''} se agregó al carrito.`);
   }
 
-  function agregarAlCarrito(producto) {
-      addToCart(producto);
-      setShareMessage(`${producto.nombre} se agregó al carrito.`);
-    }
-  
-    function iniciarPago(cotizacion = null) {
-      setCarritoAbierto(false);
-      setPago({ cotizacion });
-      if (!usuario) setAuthMode('login');
-    }
-  
-    function alAutenticar(modo) {
-      setAuthMode(null);
-  
-      if (pago) return;
-      setShareMessage(modo === 'register' ? '¡Tu cuenta está lista!' : 'Sesión iniciada.');
-    }
-  
-    function seguirExplorando() {
-      setCarritoAbierto(false);
-      setPago(null);
-      setCatalogoAbierto(true);
-      if (paginaActual !== 'inicio') irAInicio(true);
-    }
+  function iniciarPago(cotizacion = null) {
+    setCarritoAbierto(false);
+    setPago({ cotizacion });
+    if (!usuario) setAuthMode('login');
+  }
 
-    function irAInicio(aProductos = false) {
-      scrollAProductos.current = aProductos;
-      window.history.pushState({ pagina: 'inicio' }, '', aProductos ? '#productos' : '#inicio');
-      setPaginaActual('inicio');
-      if (!aProductos) window.scrollTo({ top: 0, behavior: 'instant' });
-    }
+  function alAutenticar(modo, aviso = '') {
+    setAuthMode(null);
+    if (pago && !aviso) return;
+    setShareMessage(aviso || (modo === 'register' ? '¡Tu cuenta está lista!' : 'Sesión iniciada.'));
+  }
 
-    function irAPerfil(seccion = 'cuenta') {
-      const destino = seccion === 'cuenta' ? '#perfil' : `#perfil/${seccion}`;
-      if (window.location.hash !== destino) window.history.pushState({ pagina: 'perfil' }, '', destino);
-      setSeccionPerfil(seccion);
-      setPaginaActual('perfil');
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    }
+  function abrirCatalogo(termino = '') {
+    setCarritoAbierto(false);
+    setPago(null);
+    setChatAbierto(false);
+    setCatalogoAbierto(true);
+    setCatalogoCompleto(true);
+    setBusquedaCatalogo(termino);
+    setTextoBusqueda(termino);
+    setCatalogoVersion((version) => version + 1);
+    window.history.pushState({ pagina: 'inicio' }, '', '#catalogo');
+    setPaginaActual('inicio');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
 
-    function irAPedidos() {
-      setPago(null);
-      irAPerfil('pedidos');
-    }
+  function seguirExplorando() {
+    abrirCatalogo();
+  }
+
+  function irAInicio(aProductos = false) {
+    setCatalogoCompleto(false);
+    setBusquedaCatalogo('');
+    setTextoBusqueda('');
+    scrollAProductos.current = aProductos;
+    window.history.pushState({ pagina: 'inicio' }, '', aProductos ? '#productos' : '#inicio');
+    setPaginaActual('inicio');
+    if (!aProductos) window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function irAPerfil(seccion = 'cuenta') {
+    const destino = seccion === 'cuenta' ? '#perfil' : `#perfil/${seccion}`;
+    if (window.location.hash !== destino) window.history.pushState({ pagina: 'perfil' }, '', destino);
+    setSeccionPerfil(seccion);
+    setPaginaActual('perfil');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function irAPedidos() {
+    setPago(null);
+    irAPerfil('pedidos');
+  }
 
   function irAPagina(pagina) {
     const destino = `#${pagina}`;
@@ -268,6 +302,7 @@ function HomePage() {
           lineasCotizacion={pago.cotizacion?.lineas}
           onOrderPlaced={pago.cotizacion?.onOrderPlaced}
           onClose={() => setPago(null)}
+          onExplore={pago.cotizacion ? () => setPago(null) : seguirExplorando}
           onViewOrders={irAPedidos}
         />
       )}
@@ -283,15 +318,14 @@ function HomePage() {
   const headerProps = {
     cartCount: unidadesCarrito,
     currentPage: paginaActual,
-    onHome: () => {
-      setCatalogoCompleto(false);
-      irAInicio();
-    },
+    searchValue: textoBusqueda,
+    onSearchChange: setTextoBusqueda,
+    onHome: () => irAInicio(),
     onAbout: () => irAPagina('nosotros'),
     onQuotes: () => irAPagina('cotizaciones'),
     onOpenCart: () => setCarritoAbierto(true),
     onProfile: () => (usuario ? irAPerfil('cuenta') : setAuthMode('login')),
-    onSearch: () => mostrarPendiente('La búsqueda de productos'),
+    onSearch: abrirCatalogo,
   };
 
   const chatbot = (
@@ -299,15 +333,10 @@ function HomePage() {
       isOpen={chatAbierto}
       onOpen={() => setChatAbierto(true)}
       onClose={() => setChatAbierto(false)}
-      onBrowseCatalog={() => {
+      onBrowseCatalog={seguirExplorando}
+      onQuote={() => {
         setChatAbierto(false);
-        if (paginaActual !== 'inicio') {
-          irAInicio(true);
-          return;
-        }
-        catalogoRef.current?.scrollIntoView({
-          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
-        });
+        irAPagina('cotizaciones');
       }}
     />
   );
@@ -347,12 +376,11 @@ function HomePage() {
     return (
       <>
         <ProfilePage
+          key={usuario?.email ?? 'sin-sesion'}
+          header={<SiteHeader {...headerProps} />}
           seccion={seccionPerfil}
-          cartCount={unidadesCarrito}
           onSeccion={irAPerfil}
-          onHome={() => irAInicio(false)}
           onExplore={seguirExplorando}
-          onOpenCart={() => setCarritoAbierto(true)}
           onLogin={() => setAuthMode('login')}
           onLogout={() => {
             irAInicio(false);
@@ -360,12 +388,13 @@ function HomePage() {
           }}
         />
         {capasCompartidas}
+        {chatbot}
       </>
     );
   }
 
   return (
-    <main>
+    <main ref={homeRef}>
       <section
         className={`welcome-stage${catalogoCompleto ? ' is-catalog-expanded' : ''}`}
         id="inicio"
@@ -463,6 +492,8 @@ function HomePage() {
 
 
       <Catalog
+        key={catalogoVersion}
+        searchTerm={busquedaCatalogo}
         catalogRef={catalogoRef}
         catalogFooterRef={catalogoFooterRef}
         isExpanded={catalogoCompleto}
@@ -470,8 +501,8 @@ function HomePage() {
         onShare={compartirPagina}
         onQuote={headerProps.onQuotes}
         onOpenChat={() => setChatAbierto(true)}
-        onExpand={() => setCatalogoCompleto(true)}
-        onCollapse={() => setCatalogoCompleto(false)}
+        onExpand={seguirExplorando}
+        onCollapse={() => irAInicio(true)}
       />
 
       {capasCompartidas}

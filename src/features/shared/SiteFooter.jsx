@@ -22,18 +22,12 @@ function SiteFooter({ onShare, onOpenChat, footerRef }) {
             </svg>
             Neiva, Huila, Colombia
           </p>
-          <a className="catalog-footer-contact-item" href="tel:+573000000000">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 3h4l2 5-3 2a16 16 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 20 4 14 3 5a2 2 0 0 1 2-2Z" />
-            </svg>
-            +57 300 000 0000
-          </a>
-          <a className="catalog-footer-contact-item" href="mailto:contacto@fiestacolombia.example">
+          <a className="catalog-footer-contact-item" href="mailto:contacto@fiestacolombia.com.co">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <rect x="3" y="5" width="18" height="14" rx="2" />
               <path d="m4 7 8 6 8-6" />
             </svg>
-            contacto@fiestacolombia.example
+            contacto@fiestacolombia.com.co
           </a>
           <div className="catalog-footer-links">
             <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram">

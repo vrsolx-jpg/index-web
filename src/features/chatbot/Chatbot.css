@@ -63,7 +63,7 @@
 .chatbot-heading small {
   display: block;
   margin-top: 3px;
-  color: #bd5a79;
+  color: #4a3540;
   font-size: 11px;
 }
 
@@ -182,7 +182,7 @@
 }
 
 .chatbot-form input::placeholder {
-  color: #a98290;
+  color: #4a3540;
 }
 
 .chatbot-form > button {
@@ -216,7 +216,7 @@
   padding: 7px;
   border-top: 1px solid #f5dce4;
   background: #fff7fa;
-  color: #bd5a79;
+  color: #4a3540;
   font-size: 10px;
   text-align: center;
 }
@@ -294,4 +294,23 @@
   .chatbot-quick-questions button {
     transition: none;
   }
+}
+.chatbot-widget {
+  height: min(650px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+}
+
+.chatbot-heading,
+.chatbot-suggestions,
+.chatbot-form,
+.chatbot-powered { flex: 0 0 auto; }
+.chatbot-messages { min-height: 0; overscroll-behavior: contain; overflow-wrap: anywhere; }
+.chatbot-suggestions { border-top: 1px solid #edb8c7; }
+.chatbot-suggestions summary { padding: 8px 14px; color: #a3163e; font-size: 12px; font-weight: 700; cursor: pointer; }
+.chatbot-quick-questions { max-height: min(150px, 25dvh); overscroll-behavior: contain; border-top: 0; }
+.chatbot-quick-questions button { flex: 0 0 auto; max-width: 100%; white-space: normal; }
+.chatbot-form input::placeholder { color: #6b4b59; opacity: 1; }
+
+@media (max-width: 760px) {
+  .chatbot-widget { height: min(650px, calc(100dvh - 24px)); max-height: calc(100dvh - 24px); }
 }

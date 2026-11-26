@@ -10,3 +10,26 @@ body,
 #root {
   min-height: 100svh;
 }
+
+:root {
+  color-scheme: light;
+  --bulma-scheme-main-l: 100%;
+  --bulma-scheme-main-bis-l: 98%;
+  --bulma-scheme-main-ter-l: 96%;
+  --bulma-background-l: 96%;
+  --bulma-text-l: 25%;
+  --bulma-text-strong-l: 30%;
+  --bulma-text-weak-l: 32%;
+  --bulma-scheme-main: #ffffff;
+  --bulma-body-background-color: #ffffff;
+  --bulma-body-color: #4a3540;
+  --bulma-text: #4a3540;
+  --bulma-text-strong: #a3163e;
+  --bulma-text-weak: #4a3540;
+  --bulma-title-color: #a3163e;
+  --bulma-subtitle-color: #4a3540;
+  --bulma-label-color: #4a3540;
+  --bulma-input-color: #4a3540;
+  --bulma-input-background-color: #ffffff;
+  --bulma-input-placeholder-color: #6b4b59;
+}

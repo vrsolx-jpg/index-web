@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { categoriasCatalogo, productosCatalogo, productosCatalogoCompleto } from '../catalog/catalogProducts.js';
+import { getSalePrice, normalizarTexto } from '../catalog/catalogUtils.js';
 import FloatingDecorations from '../shared/FloatingDecorations.jsx';
 import SiteFooter from '../shared/SiteFooter.jsx';
 import SiteHeader from '../shared/SiteHeader.jsx';
 import { formatCOP } from '../shop/format.js';
-import { getTotals } from '../shop/shopStore.js';
+import { getTotals, useCurrentUser } from '../shop/shopStore.js';
+import { enviarCotizacion } from '../shared/mockApi.js';
+import { entrance, gsap, motionQuery } from '../shared/motion.js';
 import './AboutQuotesPage.css';
 import '../catalog/Catalog.css';
 
@@ -25,13 +28,9 @@ const CANTIDAD_RECOMENDADA = 'recomendada';
 
 const palabrasPorEvento = {
   Cumpleaños: ['cumple', 'birthday', 'felicidades'],
-  Boda: ['boda', 'wedding'],
+  Boda: ['boda', 'wedding', 'matrimonio', 'novia', 'novios', 'casados'],
   Graduación: ['graduacion', 'graduation'],
 };
-
-function normalizarTexto(texto) {
-  return texto.toLocaleLowerCase('es-CO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
 
 function tipoDeMesa(producto) {
   if (producto.categoria !== 'desechables') return undefined;
@@ -67,6 +66,16 @@ function seleccionarProducto(actuales, producto, cantidad) {
 }
 
 function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onCheckout }) {
+  const pageRef = useRef(null);
+  const usuario = useCurrentUser();
+  const [contacto, setContacto] = useState(() => ({
+    cliente: usuario?.name ?? '', correo: usuario?.email ?? '', telefono: usuario?.phone ?? '', detalles: '',
+  }));
+  const [enviando, setEnviando] = useState(false);
+  const [solicitud, setSolicitud] = useState('');
+  const [errorEnvio, setErrorEnvio] = useState('');
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+  const cambiarContacto = (campo) => (event) => setContacto((actual) => ({ ...actual, [campo]: event.target.value }));
   const [evento, setEvento] = useState('');
   const [otroEvento, setOtroEvento] = useState('');
   const [deseaDesechables, setDeseaDesechables] = useState({});
@@ -77,6 +86,24 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
   const [vistaInicial, setVistaInicial] = useState(true);
   const [productosSeleccionados, setProductosSeleccionados] = useState({});
   const [mensaje, setMensaje] = useState('');
+
+  useEffect(() => {
+    const media = gsap.matchMedia();
+    const context = gsap.context(() => {
+      media.add(motionQuery, () => {
+        const sections = pageRef.current.querySelectorAll('.quotes-heading, .quotes-panel');
+        sections.forEach((section) => {
+          gsap.fromTo(section,
+            { autoAlpha: 0, y: 20 },
+            {
+              ...entrance, autoAlpha: 1, y: 0,
+              scrollTrigger: { trigger: section, start: 'top 92%', once: true },
+            });
+        });
+      }, pageRef);
+    }, pageRef);
+    return () => { media.revert(); context.revert(); };
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.add('catalog-open');
@@ -119,14 +146,18 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
       if (categoriaActiva !== 'todos' && producto.categoria !== categoriaActiva) return false;
       if (filtroMesa && tipoDeMesa(producto) !== filtroMesa) return false;
       const alias = producto.categoria === 'desechables' ? ' insumos' : '';
-      const texto = normalizarTexto(`${producto.nombre} ${nombresCategorias[producto.categoria]}${alias}`);
+      const texto = normalizarTexto(`${producto.nombre} ${producto.descripcion ?? ''} ${nombresCategorias[producto.categoria]}${alias}`);
       return terminosBusqueda.every((termino) => texto.includes(termino));
     })
     .sort((primero, segundo) => prioridadProducto(segundo) - prioridadProducto(primero));
 
   const lineasResumen = productosCatalogoCompleto
     .filter(({ id }) => id in productosSeleccionados)
-    .map((producto) => ({ ...producto, cantidad: cantidadEnCotizacion(producto, productosSeleccionados[producto.id]) }));
+    .map((producto) => ({
+      ...producto,
+      precioCOP: getSalePrice(producto),
+      cantidad: cantidadEnCotizacion(producto, productosSeleccionados[producto.id]),
+    }));
   const { unidades: cantidadProductos, subtotal, costoEnvio, total } = getTotals(lineasResumen);
 
   function cambiarBusqueda(valor) {
@@ -187,8 +218,7 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
     document.getElementById('catalogo-cotizacion')?.scrollIntoView({ behavior: sinAnimacion ? 'instant' : 'smooth' });
   }
 
-  function procesarPago(event) {
-    event.preventDefault();
+  function procesarPago() {
     if (lineasResumen.length === 0) {
       setMensaje('Agrega al menos un producto antes de continuar.');
       irACatalogo();
@@ -203,13 +233,59 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
     });
   }
 
+  async function enviarSolicitud(event) {
+    event.preventDefault();
+    if (enviando) return;
+    const formulario = event.currentTarget;
+    const fechaevento = new FormData(formulario).get('fechaevento');
+    setEnviando(true);
+    setErrorEnvio('');
+    setSolicitud('');
+
+    const productos = lineasResumen.map(({ cantidad, nombre }) => `${cantidad} × ${nombre}`).join(', ');
+    const detalles = [
+      contacto.detalles.trim(),
+      productos && `Se solicitaron ${productos}.`,
+      productos && `El total estimado es de ${formatCOP(total)}.`,
+    ].filter(Boolean).join('\n');
+
+    try {
+      const resultado = await enviarCotizacion({
+        ...contacto,
+        fechaevento,
+        tipoevento: evento === 'Otro' ? otroEvento : evento,
+        invitados: personas,
+        detalles,
+      });
+      setSolicitud(String(resultado.id));
+      formulario.reset();
+      setContacto({ cliente: '', correo: '', telefono: '', detalles: '' });
+      setEvento('');
+      setOtroEvento('');
+      setPersonas('');
+      setDeseaDesechables({});
+      setBusqueda('');
+      setCategoriaSeleccionada('todos');
+      setFiltroMesa(null);
+      setProductosSeleccionados({});
+      setVistaInicial(true);
+      setMensaje('');
+      const sinAnimacion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: sinAnimacion ? 'instant' : 'smooth' });
+    } catch (error) {
+      setErrorEnvio(error.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   return (
-    <div className="quotes-page">
+    <div className="quotes-page" ref={pageRef}>
       <FloatingDecorations />
       <SiteHeader
         {...headerProps}
         searchValue={busqueda}
-        onSearchChange={(event) => cambiarBusqueda(event.target.value)}
+        onSearchChange={cambiarBusqueda}
         onSearch={irACatalogo}
       />
 
@@ -220,11 +296,24 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
           <p>Cuéntanos qué estás organizando, elige tus productos y arma tu cotización.</p>
         </div>
 
+        {solicitud && (
+          <div className="notification is-success is-light quotes-confirmation" role="status">
+            ¡Recibimos tu cotización! Tu número de solicitud es <strong>#{solicitud}</strong>.
+            Está pendiente de revisión y te contactaremos al correo indicado.
+          </div>
+        )}
+        {errorEnvio && (
+          <p className="notification is-danger is-light" role="alert">
+            {errorEnvio} Tus datos siguen en el formulario para que puedas reintentar.
+          </p>
+        )}
         <form
           className={`quotes-content${vistaInicial ? ' quotes-content--initial' : ''}`}
           onChange={() => setVistaInicial(false)}
-          onSubmit={procesarPago}
+          onSubmit={enviarSolicitud}
+          aria-busy={enviando}
         >
+          <fieldset className="quotes-request-fields" disabled={enviando}>
           <section className="card quotes-panel quotes-event-form" aria-labelledby="event-details-title">
             <div className="quotes-section-heading">
               <span className="quotes-step">01</span>
@@ -235,10 +324,14 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
             </div>
 
             <div className="quotes-fields">
+              <label className="quotes-field"><span>Nombre completo</span><input className="input" type="text" autoComplete="name" value={contacto.cliente} onChange={cambiarContacto('cliente')} required minLength={2} /></label>
+              <label className="quotes-field"><span>Correo electrónico</span><input className="input" type="email" autoComplete="email" value={contacto.correo} onChange={cambiarContacto('correo')} required /></label>
+              <label className="quotes-field"><span>Teléfono de contacto</span><input className="input" type="tel" autoComplete="tel" value={contacto.telefono} onChange={cambiarContacto('telefono')} required minLength={7} /></label>
+              <label className="quotes-field"><span>Fecha del evento</span><input className="input" type="date" name="fechaevento" min={hoy} required /></label>
               <label className="quotes-field">
                 <span>Tipo de evento</span>
                 <span className="select is-fullwidth">
-                  <select value={evento} onChange={(event) => setEvento(event.target.value)}>
+                  <select value={evento} onChange={(event) => setEvento(event.target.value)} required>
                     <option value="">Selecciona una opción</option>
                     <option value="Cumpleaños">Cumpleaños</option>
                     <option value="Boda">Boda</option>
@@ -256,6 +349,7 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
                     value={otroEvento}
                     onChange={(event) => setOtroEvento(event.target.value)}
                     placeholder="Describe tu evento"
+                    required
                   />
                 </label>
               )}
@@ -269,10 +363,12 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
                   value={personas}
                   onChange={(event) => setPersonas(event.target.value.replace(/\D/g, ''))}
                   placeholder="Ej. 25"
+                  required
                 />
               </label>
             </div>
 
+            <label className="quotes-field quotes-details"><span>Detalles de tu evento</span><textarea className="textarea" value={contacto.detalles} onChange={cambiarContacto('detalles')} placeholder="Cuéntanos la temática, colores y lo que necesitas para tu celebración." rows={3} /></label>
             <div className="quotes-supplies">
               <h3>¿Qué necesitas para tu mesa?</h3>
               <div className="quotes-supply-grid">
@@ -312,7 +408,7 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
                               <span>
                                 {producto.nombre}
                                 <strong>
-                                  {formatCOP(producto.precioCOP)}
+                                  {formatCOP(getSalePrice(producto))}
                                   {paquetes > 0 && ` · ${nombrePaquetes(paquetes)} ${paquetes === 1 ? 'recomendado' : 'recomendados'}`}
                                 </strong>
                               </span>
@@ -395,7 +491,7 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
                           <span className="quotes-product-category">{nombresCategorias[producto.categoria]}</span>
                           <h3>{producto.nombre}</h3>
                           <p className="quotes-product-price">
-                            {producto.precioDesde ? 'Desde ' : ''}{formatCOP(producto.precioCOP)}
+                            {producto.precioDesde ? 'Desde ' : ''}{formatCOP(getSalePrice(producto))}
                           </p>
                           {paquetes > 0 && (
                             <p className="quotes-product-recommendation">
@@ -487,12 +583,17 @@ function AboutQuotesPage({ headerProps, footerRef, onShare, onOpenChat, onChecko
               </div>
               <div className="quotes-total"><dt>Total</dt><dd>{formatCOP(total)}</dd></div>
             </dl>
-            <button type="submit" className="button quotes-checkout">
+            <button type="submit" className={`button quotes-checkout${enviando ? ' is-loading' : ''}`}>
+              {enviando ? 'Enviando solicitud…' : 'Enviar cotización'}
+            </button>
+            <p className="quotes-payment-note">Te enviaremos la propuesta al correo indicado.</p>
+            <button type="button" className="button quotes-checkout quotes-checkout--secondary" onClick={procesarPago}>
               Ir a pagar <span aria-hidden="true">→</span>
             </button>
             <p className="quotes-payment-note">Pasarela de demostración. No se realiza ningún cobro real.</p>
           </section>
           {mensaje && <p className="quotes-status" role="status">{mensaje}</p>}
+          </fieldset>
         </form>
       </main>
 

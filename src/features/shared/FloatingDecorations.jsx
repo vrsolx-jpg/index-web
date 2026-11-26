@@ -9,7 +9,7 @@ const decoraciones = [
 
 function FloatingDecorations() {
   return (
-    <div className="welcome-floating-decorations" aria-hidden="true">
+    <div className="welcome-floating-decorations fiesta-floating-decorations" aria-hidden="true">
       {decoraciones.map(({ icono, x, y }, index) => (
         <span
           className="welcome-floating-decoration"

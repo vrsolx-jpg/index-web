@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   categoriasCatalogo,
   productosCatalogo,
   productosCatalogoCompleto,
 } from './catalogProducts.js';
 import SiteFooter from '../shared/SiteFooter.jsx';
+import { colorCaption, getProductColors, getSalePrice, nombresColor, normalizarTexto } from './catalogUtils.js';
+import { entrance, gsap, motionQuery } from '../shared/motion.js';
 import './Catalog.css';
 
 const iconosCategoria = {
@@ -73,21 +75,6 @@ function CategoryIcon({ category }) {
   );
 }
 
-const nombresColor = {
-  '#d6ae34': 'Dorado',
-  '#c4c6c8': 'Plateado',
-  '#e7a5b5': 'Rosa',
-  '#e66da8': 'Rosa',
-  '#ffffff': 'Blanco',
-  '#f5d313': 'Amarillo',
-  '#65bde0': 'Azul',
-  '#2447a2': 'Azul',
-  '#b691bd': 'Morado',
-  '#e9df7b': 'Amarillo',
-  '#e6a4d5': 'Rosa',
-  '#64750a': 'Verde',
-};
-
 const decoracionesFondo = [
   { icono: '✦', x: 7, y: 18 }, { icono: '♡', x: 18, y: 72 },
   { icono: '★', x: 31, y: 28 }, { icono: '✧', x: 42, y: 84 },
@@ -99,23 +86,8 @@ const decoracionesFondo = [
   { icono: '✧', x: 85, y: 55 }, { icono: '✦', x: 96, y: 22 },
 ];
 
-function getProductColors(product) {
-  if (!product.colores?.length) return [];
-  return [...new Set(
-    product.colores
-      .map((color) => nombresColor[color.toLowerCase()])
-      .filter(Boolean)
-  )];
-}
-
 function getPriceValue(product) {
   return product.precioCOP;
-}
-
-function getSalePrice(product) {
-  return product.descuentoPorcentaje
-    ? Math.round(product.precioCOP * (1 - product.descuentoPorcentaje / 100))
-    : product.precioCOP;
 }
 
 function formatPriceCOP(price) {
@@ -161,7 +133,7 @@ function ProductCard({ product, favorite, onFavorite, onOpen, onAdd }) {
             {categoriasCatalogo.find((item) => item.id === product.categoria)?.nombre}
           </span>
           {product.colores?.length > 0 && (
-            <span className="catalog-product-colors" aria-label="Colores disponibles">
+            <span className="catalog-product-colors" aria-label={product.tipoColor === 'seleccionable' ? 'Colores para elegir en el detalle' : colorCaption(product)}>
               {product.colores.map((color) => (
                 <span key={color} style={{ '--product-swatch': color }} />
               ))}
@@ -192,15 +164,31 @@ function ProductCard({ product, favorite, onFavorite, onOpen, onAdd }) {
         onClick={onAdd}
       >
         <CartIcon />
-        {outOfStock ? 'Agotado' : 'Agregar al carrito'}
+        {outOfStock ? 'Agotado' : product.tipoColor === 'seleccionable' ? 'Elegir color' : 'Agregar al carrito'}
       </button>
     </article>
   );
 }
 
 function ProductModal({ product, onClose, onAdd }) {
+  const modalRef = useRef(null);
   const [quantity, setQuantity] = useState(1);
+  const [variant, setVariant] = useState(null);
+  const needsColor = product.tipoColor === 'seleccionable';
+  const unitPrice = getSalePrice(product);
   const outOfStock = product.stock <= 0;
+
+  useEffect(() => {
+    const media = gsap.matchMedia();
+    const context = gsap.context(() => {
+      media.add(motionQuery, () => {
+        gsap.fromTo(modalRef.current,
+          { autoAlpha: 0, scale: 0.96 },
+          { ...entrance, autoAlpha: 1, scale: 1, duration: 0.5 });
+      });
+    }, modalRef);
+    return () => { media.revert(); context.revert(); };
+  }, []);
 
   useEffect(() => {
     function closeOnEscape(event) {
@@ -220,6 +208,7 @@ function ProductModal({ product, onClose, onAdd }) {
     >
       <section
         className="catalog-product-modal"
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-modal-title"
@@ -229,7 +218,7 @@ function ProductModal({ product, onClose, onAdd }) {
         </button>
         <div className="catalog-product-modal-image">
           {product.image ? (
-            <img src={product.image} alt={product.nombre} />
+            <img src={variant?.image ?? product.image} alt={`${product.nombre}${variant ? `, ${variant.nombre}` : ''}`} />
           ) : (
             <div className={`catalog-image-placeholder catalog-image-placeholder--${product.categoria}`}>
               <span aria-hidden="true">{iconosCategoria[product.categoria]}</span>
@@ -242,25 +231,37 @@ function ProductModal({ product, onClose, onAdd }) {
             {categoriasCatalogo.find((item) => item.id === product.categoria)?.nombre}
           </p>
           <h2 id="product-modal-title">{product.nombre}</h2>
+          {product.descripcion && <p className="mb-4">{product.descripcion}</p>}
           <p className="catalog-product-modal-brand">Marca: <strong>{product.marca}</strong></p>
           <p className={`catalog-product-modal-stock${outOfStock ? ' is-out-of-stock' : ''}`}>
             {product.stock} {product.stock === 1 ? 'unidad disponible' : 'unidades disponibles'}
             {outOfStock && ' · Agotado'}
           </p>
-          <p className={`catalog-product-modal-price${product.descuentoPorcentaje ? ' has-discount' : ''}`}>
-            {product.descuentoPorcentaje && (
-              <del>{formatPriceCOP(product.precioCOP)}</del>
-            )}
-            {formatPriceCOP(getSalePrice(product))}
+          <p className={`catalog-product-modal-price${product.descuentoPorcentaje ? ' has-discount' : ''}`} aria-live="polite" aria-atomic="true">
+            {product.descuentoPorcentaje && <del>{formatPriceCOP(product.precioCOP * quantity)}</del>}
+            {formatPriceCOP(unitPrice * quantity)}
           </p>
+          <p className="catalog-unit-price">Precio unitario: {formatPriceCOP(unitPrice)} · {quantity} {quantity === 1 ? 'unidad' : 'unidades'}</p>
           {product.colores?.length > 0 && (
             <div className="catalog-product-modal-colors">
-              <span>Colores disponibles:</span>
-              {product.colores.map((color) => (
+              <span>{colorCaption(product)}</span>
+              {needsColor ? (
+                <div className="catalog-color-options" role="radiogroup" aria-label="Color del producto">
+                  {product.variantes.map((option) => (
+                    <button key={option.color} type="button" role="radio" aria-checked={variant?.color === option.color}
+                      aria-label={option.nombre} title={option.nombre} className={`catalog-color-option${variant?.color === option.color ? ' is-selected' : ''}`}
+                      style={{ '--product-swatch': option.color }} onClick={() => setVariant(option)}>
+                      {variant?.color === option.color && <span aria-hidden="true">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              ) : product.colores.map((color) => (
                 <span key={color} style={{ '--product-swatch': color }} aria-label={nombresColor[color.toLowerCase()] ?? color} />
               ))}
             </div>
           )}
+          {needsColor && <p className="catalog-color-selection" role="status">{variant ? `Color elegido: ${variant.nombre}` : 'Selecciona el color que quieres recibir.'}</p>}
+          {product.tipoColor === 'surtido' && <p className="catalog-color-selection">El surtido se entrega como viene empacado; los colores no se eligen por separado.</p>}
           <div className="catalog-product-modal-actions">
             <div className="catalog-quantity-picker" aria-label="Cantidad">
               <button
@@ -284,8 +285,8 @@ function ProductModal({ product, onClose, onAdd }) {
             <button
               type="button"
               className="catalog-product-add"
-              disabled={outOfStock}
-              onClick={() => onAdd(quantity)}
+              disabled={outOfStock || (needsColor && !variant)}
+              onClick={() => onAdd(quantity, variant)}
             >
               <CartIcon />
               {outOfStock ? 'Agotado' : 'Agregar al carrito'}
@@ -297,8 +298,9 @@ function ProductModal({ product, onClose, onAdd }) {
   );
 }
 
-function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShare, onQuote, onOpenChat, onExpand, onCollapse }) {
-  const [selectedCategory, setSelectedCategory] = useState(categoriasCatalogo[0].id);
+function Catalog({ searchTerm = '', catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShare, onQuote, onOpenChat, onExpand, onCollapse }) {
+  const productsRef = useRef(null);
+  const [selectedCategory, setSelectedCategory] = useState(searchTerm || isExpanded ? 'todos' : categoriasCatalogo[0].id);
   const [favorites, setFavorites] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [slideStart, setSlideStart] = useState(0);
@@ -333,7 +335,8 @@ function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShar
       const matchesPrice = price >= minPrice && price <= maxPrice;
       const matchesColor = selectedColors.length === 0
         || getProductColors(product).some((color) => selectedColors.includes(color));
-      return matchesPrice && matchesColor;
+      const matchesSearch = !searchTerm || normalizarTexto(`${product.nombre} ${product.descripcion ?? ''}`).includes(normalizarTexto(searchTerm));
+      return matchesPrice && matchesColor && matchesSearch;
     });
 
     if (sortOrder === 'relevant') {
@@ -347,7 +350,7 @@ function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShar
     if (sortOrder === 'price-asc') filtered.sort((a, b) => getSalePrice(a) - getSalePrice(b));
     if (sortOrder === 'price-desc') filtered.sort((a, b) => getSalePrice(b) - getSalePrice(a));
     return filtered;
-  }, [allCategoryProducts, maxPrice, minPrice, selectedColors, sortOrder]);
+  }, [allCategoryProducts, maxPrice, minPrice, selectedColors, sortOrder, searchTerm]);
   const hasColorMatches = selectedColors.length === 0
     || allCategoryProducts.some((product) => (
       getProductColors(product).some((color) => selectedColors.includes(color))
@@ -358,6 +361,19 @@ function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShar
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  useEffect(() => {
+    if (!productsRef.current) return;
+    const media = gsap.matchMedia();
+    const context = gsap.context(() => {
+      media.add(motionQuery, () => {
+        gsap.fromTo('.catalog-product-card',
+          { autoAlpha: 0, y: 14 },
+          { ...entrance, autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.05 });
+      }, productsRef);
+    }, productsRef);
+    return () => { media.revert(); context.revert(); };
+  }, [filteredProducts, currentPage, isExpanded, slideStart, slidesPerView]);
 
   useEffect(() => {
     const mobileQuery = window.matchMedia('(max-width: 760px)');
@@ -472,14 +488,14 @@ function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShar
                 </h3>
                 <span>{allCategoryProducts.length} productos</span>
               </div>
-              <div className="catalog-preview-cards" aria-live="polite">
+              <div className="catalog-preview-cards" aria-live="polite" ref={productsRef}>
                 {visibleProducts.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
                     favorite={favorites.includes(product.id)}
                     onFavorite={toggleFavorite}
-                    onAdd={() => onAddToCart(product)}
+                    onAdd={() => product.tipoColor === 'seleccionable' ? setSelectedProduct(product) : onAddToCart(product)}
                     onOpen={() => setSelectedProduct(product)}
                   />
                 ))}
@@ -608,7 +624,7 @@ function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShar
               </aside>
               <div className="catalog-results">
                 <header className="catalog-results-toolbar">
-                  <p><strong>{filteredProducts.length}</strong> artículos</p>
+                  <p><strong>{filteredProducts.length}</strong> artículos{searchTerm && <span className="catalog-search-term"> · Resultados para “{searchTerm}”</span>}</p>
                   <label className="catalog-sort">
                     <span>Ordenar:</span>
                     <select
@@ -632,14 +648,14 @@ function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShar
                   </p>
                 )}
                 {paginatedProducts.length > 0 ? (
-                  <div className="catalog-all-grid">
+                  <div className="catalog-all-grid" ref={productsRef}>
                     {paginatedProducts.map((product) => (
                       <ProductCard
                         key={product.id}
                         product={product}
                         favorite={favorites.includes(product.id)}
                         onFavorite={toggleFavorite}
-                        onAdd={() => onAddToCart(product)}
+                        onAdd={() => product.tipoColor === 'seleccionable' ? setSelectedProduct(product) : onAddToCart(product)}
                         onOpen={() => setSelectedProduct(product)}
                       />
                     ))}
@@ -685,8 +701,8 @@ function Catalog({ catalogRef, catalogFooterRef, isExpanded, onAddToCart, onShar
           key={selectedProduct.id}
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
-          onAdd={() => {
-            onAddToCart(selectedProduct);
+          onAdd={(quantity, variant) => {
+            onAddToCart({ ...selectedProduct, image: variant?.image ?? selectedProduct.image, colorElegido: variant?.nombre, colorHex: variant?.color }, quantity);
             setSelectedProduct(null);
           }}
         />

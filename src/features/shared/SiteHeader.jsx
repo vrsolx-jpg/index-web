@@ -1,10 +1,10 @@
 import fiestaColombiaLogo from '../../assets/fiesta-colombia-logo.png';
 
 function SiteHeader({
-  cartCount, currentPage, onHome, onAbout, onQuotes, onOpenCart, onProfile, onSearch, searchValue, onSearchChange,
+  cartCount = 0, currentPage, onHome, onAbout, onQuotes, onOpenCart, onProfile, onSearch, searchValue = '', onSearchChange,
 }) {
   return (
-    <header className="site-header welcome-site-header">
+    <header className="site-header welcome-site-header fiesta-site-header">
       <a href="#inicio" className="brand" onClick={(event) => { event.preventDefault(); onHome(); }}>
         <img src={fiestaColombiaLogo} alt="" />
         <span>FIESTA COLOMBIA</span>
@@ -25,13 +25,13 @@ function SiteHeader({
           >
             Cotizaciones
           </a>
-          <form className="header-search" role="search" onSubmit={(event) => { event.preventDefault(); onSearch(); }}>
+          <form className="header-search" role="search" onSubmit={(event) => { event.preventDefault(); onSearch(searchValue.trim()); }}>
             <input
               type="search"
               placeholder="Buscar productos"
               aria-label="Buscar productos"
               value={searchValue}
-              onChange={onSearchChange}
+              onChange={(event) => onSearchChange(event.target.value)}
             />
             <button type="submit" aria-label="Buscar">
               <svg viewBox="0 0 24 24" aria-hidden="true">
