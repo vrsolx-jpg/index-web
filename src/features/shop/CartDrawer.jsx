@@ -43,6 +43,7 @@ function CartDrawer({ onClose, onCheckout, onExplore }) {
                   </div>
                   <div className="cart-line-info">
                     <h3>{linea.nombre}</h3>
+                    {linea.colorElegido && <p className="cart-line-color">Color: {linea.colorElegido}</p>}
                     <p className="cart-line-price">{formatCOP(linea.precioCOP)}</p>
                     <div className="cart-line-controls">
                       <div className="qty-stepper" role="group" aria-label={`Cantidad de ${linea.nombre}`}>

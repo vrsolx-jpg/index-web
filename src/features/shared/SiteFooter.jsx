@@ -38,12 +38,12 @@ function SiteFooter({ onShare, footerRef }) {
               </svg>
             </button>
           </div>
-          <a className="catalog-footer-email" href="mailto:hola@fiestacolombia.com">
+          <a className="catalog-footer-email" href="mailto:contacto@fiestacolombia.com.co">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <rect x="3" y="5" width="18" height="14" rx="2" />
               <path d="m4 7 8 6 8-6" />
             </svg>
-            hola@fiestacolombia.com
+            contacto@fiestacolombia.com.co
           </a>
         </section>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import './Chatbot.css';
+import { responderPregunta } from './chatbotResponses.js';
 
 const preguntasFrecuentes = [
   '¿Cómo encuentro un producto?',
@@ -11,41 +12,6 @@ const preguntasFrecuentes = [
   '¿Cómo puedo contactarlos?',
 ];
 
-function responderPregunta(question) {
-  const pregunta = question.toLocaleLowerCase('es');
-
-  if (pregunta.includes('producto') || pregunta.includes('catálogo') || pregunta.includes('catalogo')) {
-    return 'Puedes explorar las categorías y ver el catálogo completo en la sección “Categorías destacadas”.';
-  }
-  if (pregunta.includes('pago') || pregunta.includes('pagar')) {
-    return 'La información de pago está por confirmarse. Escríbenos a contacto@fiestacolombia.example y te ayudaremos.';
-  }
-  if (pregunta.includes('envío') || pregunta.includes('envio') || pregunta.includes('entrega')) {
-    return 'Estamos confirmando las opciones y cobertura de envío. Contáctanos para consultar tu pedido.';
-  }
-  if (pregunta.includes('pedido')) {
-    return 'Para consultar el estado de un pedido, escríbenos a contacto@fiestacolombia.example o llámanos al +57 300 000 0000.';
-  }
-  if (pregunta.includes('stock') || pregunta.includes('unidades') || pregunta.includes('disponibilidad')) {
-    return 'Puedes revisar la disponibilidad indicada en cada producto. Para confirmar existencias antes de comprar, contáctanos directamente.';
-  }
-  if (pregunta.includes('horario') || pregunta.includes('atienden') || pregunta.includes('abierto')) {
-    return 'Somos una tienda completamente online y puedes visitarnos por aquí las 24 horas, todos los días.';
-  }
-  if (
-    pregunta.includes('contacto')
-    || pregunta.includes('correo')
-    || pregunta.includes('teléfono')
-    || pregunta.includes('telefono')
-    || pregunta.includes('ubicación')
-    || pregunta.includes('ubicacion')
-  ) {
-    return 'Estamos en Neiva, Huila, Colombia. Puedes escribirnos a contacto@fiestacolombia.example o llamar al +57 300 000 0000.';
-  }
-
-  return 'Gracias por escribirnos. No tengo esa respuesta por ahora; puedes contactarnos en contacto@fiestacolombia.example o al +57 300 000 0000.';
-}
-
 function MessageIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -55,7 +21,7 @@ function MessageIcon() {
   );
 }
 
-function Chatbot({ isOpen, onOpen, onClose, onBrowseCatalog }) {
+function Chatbot({ isOpen, onOpen, onClose, onBrowseCatalog, onQuote }) {
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState([
     {
@@ -64,11 +30,12 @@ function Chatbot({ isOpen, onOpen, onClose, onBrowseCatalog }) {
       text: '¡Hola! Soy el asistente de Fiesta Colombia. ¿En qué puedo ayudarte?',
     },
   ]);
-  const messagesEndRef = useRef(null);
+  const messagesRef = useRef(null);
   const nextMessageId = useRef(2);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    const panel = messagesRef.current;
+    if (panel) panel.scrollTo({ top: panel.scrollHeight, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   }, [messages, isOpen]);
 
   useEffect(() => {
@@ -86,6 +53,7 @@ function Chatbot({ isOpen, onOpen, onClose, onBrowseCatalog }) {
     const texto = question.trim();
     if (!texto) return;
 
+    const reply = responderPregunta(texto);
     const userMessageId = nextMessageId.current;
     nextMessageId.current += 2;
     setMessages((current) => [
@@ -94,10 +62,8 @@ function Chatbot({ isOpen, onOpen, onClose, onBrowseCatalog }) {
       {
         id: userMessageId + 1,
         sender: 'assistant',
-        text: responderPregunta(texto),
-        showCatalogLink: texto.toLocaleLowerCase('es').includes('producto')
-          || texto.toLocaleLowerCase('es').includes('catálogo')
-          || texto.toLocaleLowerCase('es').includes('catalogo'),
+        text: reply.text,
+        action: reply.action,
       },
     ]);
     setDraft('');
@@ -118,27 +84,30 @@ function Chatbot({ isOpen, onOpen, onClose, onBrowseCatalog }) {
             <button type="button" onClick={onClose} aria-label="Cerrar asistente">×</button>
           </div>
 
-          <div className="chatbot-messages" aria-live="polite">
+          <div className="chatbot-messages" ref={messagesRef} role="log" aria-label="Historial del chat" aria-live="polite" aria-relevant="additions">
             {messages.map((message) => (
               <div className={`chatbot-message chatbot-message--${message.sender}`} key={message.id}>
                 <p>{message.text}</p>
-                {message.showCatalogLink && (
+                {message.action === 'catalogo' && (
                   <button type="button" className="chatbot-catalog-link" onClick={onBrowseCatalog}>
-                    Ir a categorías destacadas
+                    Ver catálogo completo
                   </button>
                 )}
+                {message.action === 'cotizacion' && <button type="button" className="chatbot-catalog-link" onClick={onQuote}>Cotizar mi evento</button>}
               </div>
             ))}
-            <div ref={messagesEndRef} />
           </div>
 
-          <div className="chatbot-quick-questions" aria-label="Preguntas frecuentes">
+          <details className="chatbot-suggestions" open>
+            <summary>Preguntas frecuentes</summary>
+            <div className="chatbot-quick-questions" aria-label="Preguntas frecuentes">
             {preguntasFrecuentes.map((question) => (
               <button type="button" key={question} onClick={() => enviarPregunta(question)}>
                 {question}
               </button>
             ))}
-          </div>
+            </div>
+          </details>
 
           <form
             className="chatbot-form"

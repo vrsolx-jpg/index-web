@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { categoriasCatalogo, productosCatalogo } from '../catalog/catalogProducts.js';
 import SiteFooter from '../shared/SiteFooter.jsx';
+import { enviarCotizacion } from '../shared/mockApi.js';
+import { useCurrentUser } from '../shop/shopStore.js';
+import { entrance, gsap, motionQuery } from '../shared/motion.js';
 import './AboutQuotesPage.css';
 import '../catalog/Catalog.css';
 
@@ -17,13 +20,13 @@ const opcionesInsumos = [
       || producto.id === 'platos-biodegradables-cuadrados'
     )),
   },
-  { id: 'vasos', nombre: 'Vasos', opciones: [] },
-  { id: 'cubiertos', nombre: 'Cubiertos', opciones: [] },
+  { id: 'vasos', nombre: 'Vasos', opciones: productos.filter((producto) => producto.categoriaId === 'desechables' && /^vasos/i.test(producto.nombre)) },
+  { id: 'cubiertos', nombre: 'Cubiertos', opciones: productos.filter((producto) => /^(cucharas|tenedores|cuchillos)/i.test(producto.nombre)) },
 ];
 
 const palabrasPorEvento = {
   Cumpleaños: ['cumple', 'birthday', 'felicidades'],
-  Boda: ['boda', 'wedding'],
+  Boda: ['boda', 'wedding', 'matrimonio', 'novia', 'novios', 'casados'],
   Graduación: ['graduacion', 'graduation'],
 };
 
@@ -51,7 +54,15 @@ function cantidadPaquetesRecomendada(producto, personas) {
   return Math.ceil(cantidadPersonas / unidades);
 }
 
-function AboutQuotesPage() {
+function AboutQuotesPage({ header }) {
+  const pageRef = useRef(null);
+  const usuario = useCurrentUser();
+  const [contacto, setContacto] = useState(() => ({ cliente: usuario?.name ?? '', correo: usuario?.email ?? '', telefono: usuario?.phone ?? '', fechaevento: '', detalles: '' }));
+  const [enviando, setEnviando] = useState(false);
+  const [solicitud, setSolicitud] = useState('');
+  const [errorEnvio, setErrorEnvio] = useState('');
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+  const cambiarContacto = (campo) => (event) => setContacto((actual) => ({ ...actual, [campo]: event.target.value }));
   const [evento, setEvento] = useState('');
   const [otroEvento, setOtroEvento] = useState('');
   const [tamanoLugar, setTamanoLugar] = useState('');
@@ -64,6 +75,24 @@ function AboutQuotesPage() {
   const [productosSeleccionados, setProductosSeleccionados] = useState({});
   const [mensaje, setMensaje] = useState('');
   const hayBusqueda = Boolean(busqueda.trim());
+
+  useEffect(() => {
+    const media = gsap.matchMedia();
+    const context = gsap.context(() => {
+      media.add(motionQuery, () => {
+        const sections = pageRef.current.querySelectorAll('.quotes-heading, .quotes-panel');
+        sections.forEach((section) => {
+          gsap.fromTo(section,
+            { autoAlpha: 0, y: 20 },
+            {
+              ...entrance, autoAlpha: 1, y: 0,
+              scrollTrigger: { trigger: section, start: 'top 92%', once: true },
+            });
+        });
+      }, pageRef);
+    }, pageRef);
+    return () => { media.revert(); context.revert(); };
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.add('catalog-open');
@@ -169,67 +198,30 @@ function AboutQuotesPage() {
     }
   }
 
-  function procesarPago(event) {
+  async function enviarSolicitud(event) {
     event.preventDefault();
-    if (lineasResumen.length === 0) {
-      setMensaje('Agrega al menos un producto antes de continuar.');
-      document.getElementById('catalogo-cotizacion')?.scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-
-    const paymentUrl = import.meta.env.VITE_PAYMENT_URL;
-    if (!paymentUrl) {
-      setMensaje('La pasarela de pago aún no está configurada. Tu cotización se conserva en esta página.');
-      return;
-    }
-
-    window.location.assign(paymentUrl);
+    if (enviando) return;
+    setEnviando(true); setErrorEnvio(''); setSolicitud('');
+    const seleccion = lineasResumen.map((producto) => `${producto.cantidad} × ${producto.nombre}`).join('; ');
+    const detalles = [contacto.detalles.trim(), `Tamaño del lugar: ${tamanoLugar}.`, seleccion && `Productos solicitados: ${seleccion}.`, seleccion && `Total estimado: ${precioCOP.format(total)} COP.`].filter(Boolean).join('\n');
+    try {
+      const resultado = await enviarCotizacion({
+        ...contacto, tipoevento: evento === 'Otro' ? otroEvento : evento,
+        invitados: personas, detalles,
+      });
+      setSolicitud(String(resultado.id));
+      setContacto({ cliente: '', correo: '', telefono: '', fechaevento: '', detalles: '' });
+      setEvento(''); setOtroEvento(''); setTamanoLugar(''); setPersonas('');
+      setDeseaInsumos({}); setBusqueda(''); setCategoriaSeleccionada('todos'); setFiltroInsumo('todos');
+      setMostrarTodoCatalogo(false); setProductosSeleccionados({}); setMensaje('');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) { setErrorEnvio(error.message); }
+    finally { setEnviando(false); }
   }
 
   return (
-    <div className="quotes-page">
-      <header className="site-header welcome-site-header quotes-site-header">
-        <a href="#inicio" className="brand" aria-label="Volver a la página principal de Fiesta Colombia">
-          FIESTA COLOMBIA
-        </a>
-        <div className="header-actions">
-          <nav className="header-quick-nav" aria-label="Enlaces principales">
-            <a href="#inicio">Inicio</a>
-            <a href="#resumen-cotizacion">Mi cotización</a>
-            <form
-              className="header-search"
-              role="search"
-              onSubmit={(event) => {
-                event.preventDefault();
-                document.getElementById('catalogo-cotizacion')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              <input
-                type="search"
-                placeholder="Buscar productos"
-                aria-label="Buscar productos"
-                value={busqueda}
-                onChange={(event) => setBusqueda(event.target.value)}
-              />
-              <button type="submit" aria-label="Buscar">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="10.8" cy="10.8" r="6.8" />
-                  <path d="m16 16 5 5" />
-                </svg>
-              </button>
-            </form>
-          </nav>
-          <div className="header-shortcut-actions" aria-label="Accesos rápidos">
-            <a className="header-shortcut" href="#resumen-cotizacion" aria-label={`Resumen, ${cantidadProductos} productos`}>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" />
-                <circle cx="10" cy="20" r="1" />
-                <circle cx="18" cy="20" r="1" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </header>
+    <div className="quotes-page" ref={pageRef}>
+      {header}
 
       <main className="quotes-main">
         <div className="quotes-heading">
@@ -238,7 +230,10 @@ function AboutQuotesPage() {
           <p>Cuéntanos qué estás organizando, elige tus productos y arma tu cotización.</p>
         </div>
 
-        <form className="quotes-content" onSubmit={procesarPago}>
+        {solicitud && <div className="notification is-success is-light quotes-confirmation" role="status">¡Recibimos tu cotización! Tu número de solicitud es <strong>#{solicitud}</strong>. Está pendiente de revisión; te contactaremos al correo indicado.</div>}
+        {errorEnvio && <p className="notification is-danger is-light" role="alert">{errorEnvio} Tus datos siguen en el formulario para que puedas reintentar.</p>}
+        <form className="quotes-content" onSubmit={enviarSolicitud} aria-busy={enviando}>
+          <fieldset className="quotes-request-fields" disabled={enviando}>
           <section className="quotes-panel quotes-event-form" aria-labelledby="event-details-title">
             <div className="quotes-section-heading">
               <span className="quotes-step">01</span>
@@ -249,6 +244,10 @@ function AboutQuotesPage() {
             </div>
 
             <div className="quotes-fields">
+              <label className="quotes-field"><span>Nombre completo</span><input className="input" type="text" autoComplete="name" value={contacto.cliente} onChange={cambiarContacto('cliente')} required minLength={2} /></label>
+              <label className="quotes-field"><span>Correo electrónico</span><input className="input" type="email" autoComplete="email" value={contacto.correo} onChange={cambiarContacto('correo')} required /></label>
+              <label className="quotes-field"><span>Teléfono de contacto</span><input className="input" type="tel" autoComplete="tel" value={contacto.telefono} onChange={cambiarContacto('telefono')} required minLength={7} /></label>
+              <label className="quotes-field"><span>Fecha del evento</span><input className="input" type="date" min={hoy} value={contacto.fechaevento} onChange={cambiarContacto('fechaevento')} required /></label>
               <label className="quotes-field">
                 <span>Tipo de evento</span>
                 <select
@@ -304,6 +303,7 @@ function AboutQuotesPage() {
               </label>
             </div>
 
+            <label className="quotes-field quotes-details"><span>Detalles de tu evento</span><textarea className="textarea" value={contacto.detalles} onChange={cambiarContacto('detalles')} placeholder="Cuéntanos la temática, colores y lo que necesitas para tu celebración." rows={3} /></label>
             <div className="quotes-supplies">
               <h3>¿Qué necesitas para tu mesa?</h3>
               <div className="quotes-supply-grid">
@@ -600,12 +600,13 @@ function AboutQuotesPage() {
                 {precioCOP.format(total)} COP
               </strong>
             </div>
-            <button type="submit" className="quotes-checkout">
-              Ir a pagar <span aria-hidden="true">→</span>
+            <button type="submit" className="button quotes-checkout" disabled={enviando}>
+              {enviando ? 'Enviando solicitud…' : 'Enviar cotización'} <span aria-hidden="true">→</span>
             </button>
-            <p className="quotes-payment-note">El pago se procesará de forma segura al conectar la pasarela.</p>
+            <p className="quotes-payment-note">Te enviaremos la propuesta al correo indicado. Enviar esta solicitud no genera un cobro.</p>
           </section>
           {mensaje && <p className="quotes-status" role="status">{mensaje}</p>}
+          </fieldset>
         </form>
       </main>
 

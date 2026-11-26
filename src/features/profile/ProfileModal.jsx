@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import discoImage from '../../assets/disco.avif';
-import { loginUser, registerUser } from '../shop/shopStore.js';
+import { cargarPerfil, loginUser, registerUser } from '../shop/shopStore.js';
 import './ProfileModal.css';
 
 function ProfileModal({ mode, notice = '', onClose, onModeChange, onSuccess }) {
   const [message, setMessage] = useState(notice);
+  const [submitting, setSubmitting] = useState(false);
 
- function submitAccess(event) {
+ async function submitAccess(event) {
   event.preventDefault();
+  if (submitting) return;
 
   const campos = event.currentTarget.elements;
 
@@ -29,7 +30,12 @@ function ProfileModal({ mode, notice = '', onClose, onModeChange, onSuccess }) {
     return;
   }
 
-  onSuccess(mode);
+  setSubmitting(true);
+  let aviso = '';
+  try { await cargarPerfil({ force: true }); }
+  catch { aviso = 'Sesión iniciada. No pudimos cargar tus datos guardados; puedes reintentar desde Mi perfil.'; }
+  setSubmitting(false);
+  onSuccess(mode, aviso);
 }
 
   function simulateGoogle() {
@@ -45,7 +51,7 @@ function ProfileModal({ mode, notice = '', onClose, onModeChange, onSuccess }) {
     <div className="auth-overlay">
       <section className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title">
         <div className="auth-art">
-          <img src={discoImage} alt="" />
+          <img src="https://images.unsplash.com/photo-1608048608029-99c772d199ed?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D" alt="" />
           <div className="auth-art-copy">
             <strong>¡Celebremos juntos!</strong>
             <small>Todo para hacer especial tu próxima fiesta.</small>
@@ -119,7 +125,7 @@ function ProfileModal({ mode, notice = '', onClose, onModeChange, onSuccess }) {
                 ¿Olvidaste tu contraseña?
               </button>
             )}
-            <button type="submit" className="auth-submit">
+            <button type="submit" disabled={submitting} className="auth-submit">
               {mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
             </button>
             {message && <p className="auth-message" role="status">{message}</p>}

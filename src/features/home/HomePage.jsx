@@ -5,12 +5,13 @@ import bateImage from '../../assets/bate.png';
 import gorrosImage from '../../assets/gorros.png';
 import lentesImage from '../../assets/lentes.png';
 import pinataImage from '../../assets/piañata.png';
-import fiestaColombiaLogo from '../../assets/fiesta-colombia-logo.png';
 import AboutQuotesPage from '../about/AboutQuotesPage.jsx';
 import Catalog from '../catalog/Catalog.jsx';
 import Chatbot from '../chatbot/Chatbot.jsx';
 import ProfileModal from '../profile/ProfileModal.jsx';
 import ProfilePage from '../profile/ProfilePage.jsx';
+import SiteHeader from '../shared/SiteHeader.jsx';
+import { entrance, gsap, motionQuery } from '../shared/motion.js';
 import CartDrawer from '../shop/CartDrawer.jsx';
 import CheckoutModal from '../shop/CheckoutModal.jsx';
 import { addToCart, getTotals, useCart, useCurrentUser } from '../shop/shopStore.js';
@@ -34,7 +35,7 @@ function leerHash() {
     const seccion = hash.split('/')[1];
     return { pagina: 'perfil', seccion: SECCIONES_PERFIL.includes(seccion) ? seccion : 'cuenta' };
   }
-  return { pagina: 'inicio', seccion: 'cuenta' };
+  return { pagina: 'inicio', seccion: 'cuenta', catalogo: hash === '#catalogo' };
 }
 
 const decoracionesBienvenida = [
@@ -57,8 +58,12 @@ function HomePage() {
   const usuario = useCurrentUser();
   const unidadesCarrito = getTotals(carrito).unidades;
   const [shareMessage, setShareMessage] = useState('');
-  const [catalogoCompleto, setCatalogoCompleto] = useState(false);
+  const [catalogoCompleto, setCatalogoCompleto] = useState(() => Boolean(leerHash().catalogo));
+  const [busquedaCatalogo, setBusquedaCatalogo] = useState('');
+  const [textoBusqueda, setTextoBusqueda] = useState('');
+  const [catalogoVersion, setCatalogoVersion] = useState(0);
   const catalogoRef = useRef(null);
+  const homeRef = useRef(null);
   const catalogoFooterRef = useRef(null);
   const scrollAProductos = useRef(false);
   const [animacion, setAnimacion] = useState({
@@ -68,8 +73,28 @@ function HomePage() {
   });
 
   useEffect(() => {
+    if (paginaActual !== 'inicio' || catalogoCompleto || !homeRef.current) return;
+    const media = gsap.matchMedia();
+    const context = gsap.context(() => {
+      media.add(motionQuery, () => {
+        gsap.fromTo('.hero-eyebrow, .hero-copy h1, .hero-caption, .hero-actions',
+          { autoAlpha: 0, y: 22 },
+          { ...entrance, autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.1 });
+        gsap.fromTo('.catalog-categories button',
+          { autoAlpha: 0, y: 18 },
+          {
+            ...entrance, autoAlpha: 1, y: 0, stagger: 0.08,
+            scrollTrigger: { trigger: '.catalog-categories', start: 'top 90%', once: true },
+          });
+      }, homeRef);
+    }, homeRef);
+    return () => { media.revert(); context.revert(); };
+  }, [paginaActual, catalogoCompleto, catalogoVersion]);
+
+  useEffect(() => {
     function sincronizarPagina() {
-      const { pagina, seccion } = leerHash();
+      const { pagina, seccion, catalogo } = leerHash();
+      setCatalogoCompleto(Boolean(catalogo));
       setPaginaActual(pagina);
       setSeccionPerfil(seccion);
     }
@@ -88,7 +113,7 @@ function HomePage() {
     catalogoRef.current?.scrollIntoView({
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
     });
-  }, [paginaActual]);
+  }, [paginaActual, catalogoCompleto]);
 
   useEffect(() => {
     if (!catalogoCompleto) return;
@@ -113,7 +138,7 @@ function HomePage() {
       document.documentElement.classList.remove('catalog-footer-visible');
       document.body.classList.remove('catalog-footer-visible');
     };
-  }, [paginaActual]);
+  }, [paginaActual, catalogoVersion]);
 
   useEffect(() => {
     function cerrarModalConEscape(evento) {
@@ -164,9 +189,9 @@ function HomePage() {
     setShareMessage(`${seccion} estará disponible próximamente.`);
   }
 
-  function agregarAlCarrito(producto) {
-      addToCart(producto);
-      setShareMessage(`${producto.nombre} se agregó al carrito.`);
+  function agregarAlCarrito(producto, cantidad = 1) {
+      addToCart(producto, cantidad);
+      setShareMessage(`${cantidad} × ${producto.nombre}${producto.colorElegido ? ` (${producto.colorElegido})` : ''} se agregó al carrito.`);
     }
   
     function iniciarPago() {
@@ -180,7 +205,7 @@ function HomePage() {
       setPagoAbierto(true);
     }
   
-    function alAutenticar(modo) {
+    function alAutenticar(modo, aviso = '') {
       setAuthMode(null);
   
       if (volverAPagar) {
@@ -188,17 +213,31 @@ function HomePage() {
         setPagoAbierto(true);
         return;
       }
-      setShareMessage(modo === 'register' ? '¡Tu cuenta está lista!' : 'Sesión iniciada.');
+      setShareMessage(aviso || (modo === 'register' ? '¡Tu cuenta está lista!' : 'Sesión iniciada.'));
     }
   
-    function seguirExplorando() {
+    function abrirCatalogo(termino = '') {
       setCarritoAbierto(false);
       setPagoAbierto(false);
+      setChatAbierto(false);
       setCatalogoAbierto(true);
-      if (paginaActual !== 'inicio') irAInicio(true);
+      setCatalogoCompleto(true);
+      setBusquedaCatalogo(termino);
+      setTextoBusqueda(termino);
+      setCatalogoVersion((version) => version + 1);
+      window.history.pushState({ pagina: 'inicio' }, '', '#catalogo');
+      setPaginaActual('inicio');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    function seguirExplorando() {
+      abrirCatalogo();
     }
 
     function irAInicio(aProductos = false) {
+      setCatalogoCompleto(false);
+      setBusquedaCatalogo('');
+      setTextoBusqueda('');
       scrollAProductos.current = aProductos;
       window.history.pushState({ pagina: 'inicio' }, '', aProductos ? '#productos' : '#inicio');
       setPaginaActual('inicio');
@@ -247,7 +286,23 @@ function HomePage() {
     }
   }
 
-  if (paginaActual === 'cotizaciones') return <AboutQuotesPage />;
+  const cabecera = (
+    <SiteHeader
+      cartCount={unidadesCarrito}
+      searchValue={textoBusqueda}
+      onSearchChange={setTextoBusqueda}
+      onHome={() => irAInicio(false)}
+      onAbout={() => mostrarPendiente('Nosotros')}
+      onQuotes={irACotizaciones}
+      onSearch={abrirCatalogo}
+      onCart={() => setCarritoAbierto(true)}
+      onProfile={() => (usuario ? irAPerfil('cuenta') : setAuthMode('login'))}
+    />
+  );
+  const asistente = (
+    <Chatbot isOpen={chatAbierto} onOpen={() => setChatAbierto(true)} onClose={() => setChatAbierto(false)}
+      onBrowseCatalog={seguirExplorando} onQuote={() => { setChatAbierto(false); irACotizaciones(); }} />
+  );
 
   const capasCompartidas = (
     <>
@@ -275,6 +330,7 @@ function HomePage() {
       {pagoAbierto && (
         <CheckoutModal
           onClose={() => setPagoAbierto(false)}
+          onExplore={seguirExplorando}
           onViewOrders={irAPedidos}
         />
       )}
@@ -287,16 +343,19 @@ function HomePage() {
     </>
   );
 
+  if (paginaActual === 'cotizaciones') {
+    return <><AboutQuotesPage header={cabecera} />{capasCompartidas}{asistente}</>;
+  }
+
   if (paginaActual === 'perfil') {
     return (
       <>
         <ProfilePage
+          key={usuario?.email ?? 'sin-sesion'}
+          header={cabecera}
           seccion={seccionPerfil}
-          cartCount={unidadesCarrito}
           onSeccion={irAPerfil}
-          onHome={() => irAInicio(false)}
           onExplore={seguirExplorando}
-          onOpenCart={() => setCarritoAbierto(true)}
           onLogin={() => setAuthMode('login')}
           onLogout={() => {
             irAInicio(false);
@@ -304,84 +363,19 @@ function HomePage() {
           }}
         />
         {capasCompartidas}
+        {asistente}
       </>
     );
   }
 
   return (
-    <main>
+    <main ref={homeRef}>
       <section
         className={`welcome-stage${catalogoCompleto ? ' is-catalog-expanded' : ''}`}
         id="inicio"
       >
         <div className="welcome-frame">
-          <header className="site-header welcome-site-header">
-            <a
-              href="#inicio"
-              className="brand"
-              onClick={() => setCatalogoCompleto(false)}
-            >
-              <img src={fiestaColombiaLogo} alt="" />
-              <span>FIESTA COLOMBIA</span>
-            </a>
-
-            <div className="header-actions">
-              <nav className="header-quick-nav" aria-label="Enlaces principales">
-                <a href="#nosotros" onClick={(evento) => {
-                  evento.preventDefault();
-                  mostrarPendiente('Nosotros');
-                }}>Nosotros</a>
-                <a href="#cotizaciones" onClick={(evento) => {
-                  evento.preventDefault();
-                  irACotizaciones();
-                }}>Cotizaciones</a>
-                <form
-                  className="header-search"
-                  role="search"
-                  onSubmit={(evento) => {
-                    evento.preventDefault();
-                    mostrarPendiente('La búsqueda de productos');
-                  }}
-                >
-                  <input type="search" placeholder="Buscar productos" aria-label="Buscar productos" />
-                  <button type="submit" aria-label="Buscar">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <circle cx="10.8" cy="10.8" r="6.8" />
-                      <path d="m16 16 5 5" />
-                    </svg>
-                  </button>
-                </form>
-              </nav>
-              <div className="header-shortcut-actions" aria-label="Accesos rápidos">
-                <button
-                  type="button"
-                  className="header-shortcut"
-                  aria-label={`Carrito, ${unidadesCarrito} ${unidadesCarrito === 1 ? 'producto' : 'productos'}`}
-                  onClick={() => setCarritoAbierto(true)}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" />
-                    <circle cx="10" cy="20" r="1" />
-                    <circle cx="18" cy="20" r="1" />
-                  </svg>
-                  {unidadesCarrito > 0 && (
-                  <span className="cart-badge" aria-hidden="true">{unidadesCarrito}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="header-shortcut"
-                  aria-label="Mi perfil"
-                  onClick={() => (usuario ? irAPerfil('cuenta') : setAuthMode('login'))}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </header>
+          {cabecera}
           <div
             className="welcome-card"
             hidden={catalogoCompleto}
@@ -488,6 +482,8 @@ function HomePage() {
 
 
       <Catalog
+        key={catalogoVersion}
+        searchTerm={busquedaCatalogo}
         catalogRef={catalogoRef}
         catalogFooterRef={catalogoFooterRef}
         isExpanded={catalogoCompleto}
@@ -495,8 +491,8 @@ function HomePage() {
         onShare={compartirPagina}
         onQuote={irACotizaciones}
         onOpenChat={() => setChatAbierto(true)}
-        onExpand={() => setCatalogoCompleto(true)}
-        onCollapse={() => setCatalogoCompleto(false)}
+        onExpand={seguirExplorando}
+        onCollapse={() => irAInicio(true)}
       />
 
       {capasCompartidas}
@@ -513,17 +509,7 @@ function HomePage() {
               </button>
             )}
 
-      <Chatbot
-        isOpen={chatAbierto}
-        onOpen={() => setChatAbierto(true)}
-        onClose={() => setChatAbierto(false)}
-        onBrowseCatalog={() => {
-          setChatAbierto(false);
-          catalogoRef.current?.scrollIntoView({
-            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
-          });
-        }}
-      />
+      {asistente}
     </main>
   );
 }

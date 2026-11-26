@@ -1,5 +1,6 @@
 
 import { useMemo, useSyncExternalStore } from 'react';
+import { consultarUsuarios, eliminarUsuario, guardarUsuario } from '../shared/mockApi.js';
 
 const CLAVES = {
   carrito: 'fc_carrito',
@@ -8,6 +9,7 @@ const CLAVES = {
   pedidos: 'fc_pedidos',
   tarjetas: 'fc_tarjetas',
   direcciones: 'fc_direcciones',
+  leidas: 'fc_perfil_leidas',
 };
 
 export const ENVIO = { tarifa: 6000, gratisDesde: 50000 };
@@ -75,20 +77,28 @@ export function useCart() {
 
 export function addToCart(producto, cantidad = 1) {
   const carrito = leer(CLAVES.carrito, VACIO);
-  const existe = carrito.some((linea) => linea.id === producto.id);
+  const id = producto.colorElegido ? `${producto.id}::${producto.colorHex}` : producto.id;
+  const unidades = Math.max(1, Math.min(99, Number(cantidad) || 1, producto.stock ?? 99));
+  const precioCOP = producto.descuentoPorcentaje
+    ? Math.round(producto.precioCOP * (1 - producto.descuentoPorcentaje / 100))
+    : producto.precioCOP;
+  const existe = carrito.some((linea) => linea.id === id);
 
   const siguiente = existe
     ? carrito.map((linea) => (
-      linea.id === producto.id
-        ? { ...linea, cantidad: Math.min(99, linea.cantidad + cantidad) }
+      linea.id === id
+        ? { ...linea, cantidad: Math.min(99, producto.stock ?? 99, linea.cantidad + unidades) }
         : linea
     ))
     : [...carrito, {
-      id: producto.id,
+      id,
+      productoId: producto.id,
       nombre: producto.nombre,
-      precioCOP: producto.precioCOP,
+      precioCOP,
       image: producto.image ?? null,
-      cantidad,
+      colorElegido: producto.colorElegido ?? '',
+      stock: producto.stock,
+      cantidad: unidades,
     }];
 
   escribir(CLAVES.carrito, siguiente);
@@ -103,7 +113,7 @@ export function changeQty(id, cantidad) {
   escribir(
     CLAVES.carrito,
     carrito.map((linea) => (
-      linea.id === id ? { ...linea, cantidad: Math.min(99, cantidad) } : linea
+      linea.id === id ? { ...linea, cantidad: Math.min(99, linea.stock ?? 99, cantidad) } : linea
     )),
   );
 }
@@ -304,10 +314,14 @@ export function useAddresses() {
   return useUserList(CLAVES.direcciones);
 }
 
+export function getAddresses() {
+  return listaDelUsuario(CLAVES.direcciones);
+}
+
 const CAMPOS_DIRECCION = ['alias', 'nombre', 'telefono', 'ciudad', 'direccion', 'indicaciones'];
 
 /* Crea la dirección o, si trae id, la actualiza. Devuelve la dirección guardada. */
-export function saveAddress(datos) {
+function guardarDireccionLocal(datos) {
   const correo = leer(CLAVES.sesion, null);
   if (!correo) return null;
 
@@ -320,7 +334,7 @@ export function saveAddress(datos) {
   let siguientes;
   if (datos.id && actuales.some((direccion) => direccion.id === datos.id)) {
     siguientes = actuales.map((direccion) => (
-      direccion.id === datos.id ? { ...direccion, ...limpios } : direccion
+      direccion.id === datos.id ? { ...direccion, ...limpios, mockApiId: datos.mockApiId ?? direccion.mockApiId } : direccion
     ));
     guardada = siguientes.find((direccion) => direccion.id === datos.id);
   } else {
@@ -328,6 +342,7 @@ export function saveAddress(datos) {
       id: generarId('dir'),
       email: correo,
       ...limpios,
+      mockApiId: datos.mockApiId,
       predeterminada: actuales.length === 0,
       creadaEn: new Date().toISOString(),
     };
@@ -339,7 +354,7 @@ export function saveAddress(datos) {
   return guardada;
 }
 
-export function removeAddress(id) {
+function eliminarDireccionLocal(id) {
   const restantes = listaDelUsuario(CLAVES.direcciones).filter((direccion) => direccion.id !== id);
   if (restantes.length > 0 && !restantes.some((direccion) => direccion.predeterminada)) {
     restantes[0] = { ...restantes[0], predeterminada: true };
@@ -352,4 +367,167 @@ export function setDefaultAddress(id) {
     CLAVES.direcciones,
     marcarPredeterminado(listaDelUsuario(CLAVES.direcciones), id),
   );
+}
+
+/* ---------- Perfil y direcciones en MockAPI ---------- */
+
+const perfilesRemotos = new Map();
+const cargasPerfil = new Map();
+const escriturasPerfil = new Map();
+const revisionesPerfil = new Map();
+const SIN_LEER = {};
+
+function usuarioPorCorreo(correo) {
+  return leer(CLAVES.usuarios, VACIO).find((usuario) => usuario.email === correo);
+}
+
+function comprobarSesion(correo) {
+  if (!correo || leer(CLAVES.sesion, null) !== correo) {
+    throw new Error('Tu sesión cambió. Abre tu perfil e intenta de nuevo.');
+  }
+}
+
+export function cargarPerfil({ force = false } = {}) {
+  const correo = leer(CLAVES.sesion, null);
+  if (!correo) return Promise.resolve(null);
+  if (cargasPerfil.has(correo)) return cargasPerfil.get(correo);
+  if (!force && perfilesRemotos.has(correo)) return Promise.resolve(usuarioPorCorreo(correo));
+  const revision = revisionesPerfil.get(correo) ?? 0;
+  const carga = consultarUsuarios(correo).then((records) => {
+    if (leer(CLAVES.sesion, null) !== correo || revision !== (revisionesPerfil.get(correo) ?? 0)) return null;
+    perfilesRemotos.set(correo, records);
+    const perfil = records.find((record) => !record.etiquetaDireccion) ?? records[0];
+    const actuales = listaDelUsuario(CLAVES.direcciones);
+    const remotas = records.filter((record) => record.direccion).map((record) => {
+      const existente = actuales.find((direccion) => String(direccion.mockApiId) === String(record.id)
+        || (!direccion.mockApiId && direccion.direccion === record.direccion && direccion.ciudad === record.ciudad));
+      return {
+        id: existente?.id ?? `dir-api-${record.id}`,
+        mockApiId: String(record.id),
+        email: correo,
+        alias: record.etiquetaDireccion || 'Casa',
+        nombre: record.nombre || '',
+        telefono: record.telefono || '',
+        ciudad: record.ciudad || '',
+        direccion: record.direccion || '',
+        indicaciones: record.indicaciones || '',
+        predeterminada: existente?.predeterminada ?? false,
+        creadaEn: existente?.creadaEn ?? new Date().toISOString(),
+      };
+    });
+    const siguientes = [...remotas, ...actuales.filter((direccion) => !direccion.mockApiId
+      && !remotas.some((remota) => remota.id === direccion.id))];
+    if (siguientes.length && !siguientes.some((direccion) => direccion.predeterminada)) siguientes[0].predeterminada = true;
+    guardarListaDelUsuario(CLAVES.direcciones, siguientes);
+    if (perfil) {
+      const principal = siguientes.find((direccion) => direccion.predeterminada);
+      updateUser({
+        name: perfil.nombre || usuarioPorCorreo(correo).name,
+        phone: perfil.telefono || '',
+        city: principal?.ciudad || perfil.ciudad || '',
+        address: principal?.direccion || perfil.direccion || '',
+      });
+    }
+    return usuarioPorCorreo(correo);
+  }).finally(() => cargasPerfil.delete(correo));
+  cargasPerfil.set(correo, carga);
+  return carga;
+}
+
+function serializarPerfil(operacion) {
+  const correo = leer(CLAVES.sesion, null);
+  const anterior = escriturasPerfil.get(correo) ?? Promise.resolve();
+  const siguiente = anterior.catch(() => {}).then(async () => {
+    comprobarSesion(correo);
+    await cargarPerfil();
+    comprobarSesion(correo);
+    revisionesPerfil.set(correo, (revisionesPerfil.get(correo) ?? 0) + 1);
+    try {
+      return await operacion(correo);
+    } finally {
+      revisionesPerfil.set(correo, (revisionesPerfil.get(correo) ?? 0) + 1);
+    }
+  });
+  escriturasPerfil.set(correo, siguiente);
+  return siguiente.finally(() => {
+    if (escriturasPerfil.get(correo) === siguiente) escriturasPerfil.delete(correo);
+  });
+}
+
+function actualizarRegistroRemoto(correo, record) {
+  const actuales = perfilesRemotos.get(correo) ?? [];
+  perfilesRemotos.set(correo, [...actuales.filter((item) => String(item.id) !== String(record.id)), record]);
+}
+
+async function guardarCuentaRemota(correo, cambios = {}) {
+  const usuario = { ...usuarioPorCorreo(correo), ...cambios };
+  const perfil = perfilesRemotos.get(correo)?.find((record) => !record.etiquetaDireccion);
+  const record = await guardarUsuario({
+    nombre: usuario.name, correo, telefono: usuario.phone,
+    ciudad: '', direccion: '', indicaciones: '', etiquetaDireccion: '',
+  }, perfil?.id);
+  comprobarSesion(correo);
+  actualizarRegistroRemoto(correo, record);
+  return record;
+}
+
+export function guardarPerfil(cambios) {
+  return serializarPerfil(async (correo) => {
+    await guardarCuentaRemota(correo, cambios);
+    updateUser(cambios);
+    return usuarioPorCorreo(correo);
+  });
+}
+
+export function saveAddress(datos) {
+  if (['nombre', 'telefono', 'ciudad', 'direccion'].some((campo) => !String(datos[campo] ?? '').trim())) {
+    return Promise.reject(new Error('Completa el nombre, teléfono, ciudad y dirección de entrega.'));
+  }
+  return serializarPerfil(async (correo) => {
+    const actuales = listaDelUsuario(CLAVES.direcciones);
+    const existente = actuales.find((direccion) => direccion.id === datos.id)
+      ?? actuales.find((direccion) => direccion.direccion.trim() === datos.direccion.trim()
+        && direccion.ciudad.trim() === datos.ciudad.trim() && direccion.alias === datos.alias);
+    if (!perfilesRemotos.get(correo)?.some((record) => !record.etiquetaDireccion)) await guardarCuentaRemota(correo);
+    const record = await guardarUsuario({
+      nombre: datos.nombre, correo, telefono: datos.telefono,
+      ciudad: datos.ciudad, direccion: datos.direccion,
+      indicaciones: datos.indicaciones, etiquetaDireccion: datos.alias || 'Casa',
+    }, existente?.mockApiId);
+    comprobarSesion(correo);
+    actualizarRegistroRemoto(correo, record);
+    const direccion = guardarDireccionLocal({ ...datos, id: existente?.id, mockApiId: record.id });
+    if (direccion.predeterminada || datos.predeterminada) updateUser({ city: datos.ciudad, address: datos.direccion });
+    return direccion;
+  });
+}
+
+export function removeAddress(id) {
+  return serializarPerfil(async (correo) => {
+    const direccion = listaDelUsuario(CLAVES.direcciones).find((item) => item.id === id);
+    if (direccion?.mockApiId) {
+      await eliminarUsuario(direccion.mockApiId);
+      comprobarSesion(correo);
+      perfilesRemotos.set(correo, perfilesRemotos.get(correo).filter((record) => String(record.id) !== direccion.mockApiId));
+    }
+    eliminarDireccionLocal(id);
+    const principal = listaDelUsuario(CLAVES.direcciones).find((item) => item.predeterminada);
+    updateUser({ city: principal?.ciudad ?? '', address: principal?.direccion ?? '' });
+  });
+}
+
+/* Las insignias indican novedades; los totales de Mi cuenta conservan el historial completo. */
+export function useProfileRead() {
+  const correo = useSyncExternalStore(suscribir, () => leer(CLAVES.sesion, null));
+  const registros = useSyncExternalStore(suscribir, () => leer(CLAVES.leidas, SIN_LEER));
+  return registros[correo] ?? SIN_LEER;
+}
+
+export function marcarSeccionLeida(seccion, ids) {
+  const correo = leer(CLAVES.sesion, null);
+  if (!correo) return;
+  const registros = leer(CLAVES.leidas, SIN_LEER);
+  const anteriores = registros[correo]?.[seccion] ?? [];
+  if (ids.every((id) => anteriores.includes(id))) return;
+  escribir(CLAVES.leidas, { ...registros, [correo]: { ...registros[correo], [seccion]: [...new Set([...anteriores, ...ids])] } });
 }

@@ -42,7 +42,7 @@
 }
 
 .main-nav a:hover {
-  color: #aaa995;
+  color: #4a3540;
 }
 
 .header-search input {
@@ -787,7 +787,7 @@
 }
 
 .header-search input::placeholder {
-  color: #b87586;
+  color: #4a3540;
 }
 
 /* ===== BANNER ROSA PASTEL: PIÑATERÍA ===== */
